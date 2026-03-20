@@ -175,7 +175,7 @@ ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::reconstruct_state_2d(
 
     // is it a left or right interface ?
     //  i-1  L|R     i    L|R    i+1
-    const int  a = offsets[dir] < 0 ? 1 : 0;
+    // const int  a = offsets[dir] < 0 ? 1 : 0;
     const int  b = offsets[dir] < 0 ? -1 : 1;
     const auto beta = m_thinc.beta * fabs(normal_vector[dir]) + KALYPSSO_NUM(0.01);
     // const auto A = exp(2 * beta);

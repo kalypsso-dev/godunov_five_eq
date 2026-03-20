@@ -99,7 +99,7 @@ InitStaticDropletDataFunctor<dim, device_t>::operator()(const int32_t & global_i
   auto const & rho_liq = m_initial_states(0)[Hydro::ID];
 
   // gas hydro state
-  auto const & rho_gas = m_initial_states(1)[Hydro::ID];
+  // auto const & rho_gas = m_initial_states(1)[Hydro::ID];
 
   auto const & radius = m_staticDropletParams.radius;
 
