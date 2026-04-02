@@ -29,7 +29,7 @@ SPDX-License-Identifier = "Unlicense"
 
 [[annotations]]
 path = [
-    "app/**/*.ini", "app/**/*.sh", "app/**/*.py", "app/**/*.ini.tmpl", "app/**/*.sh.tmpl", "app/**/Readme.md", "app/**/readme.md", "**/Readme.md", "**/README.md"
+    "app/**/*.ini", "app/**/*.sh", "app/**/*.py", "app/**/*.ini.tmpl", "app/**/*.sh.tmpl", "app/**/Readme.md", "app/**/readme.md", "**/Readme.md", "**/README.md", "app/**/*.pvsm"
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "godunov_five_eq authors"

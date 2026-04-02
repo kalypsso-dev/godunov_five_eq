@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Unlicense
 
 [files]
-extend-exclude = ["doc/doxyfile.in"]
+extend-exclude = ["doc/doxyfile.in", "app/test_shock_bubble_air_helium_2d/test_shock_bubble_air_helium_2d_plot.pvsm"]
 
 [default.extend-words]
 IY = "IY"
