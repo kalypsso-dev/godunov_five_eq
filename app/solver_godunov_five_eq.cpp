@@ -153,27 +153,70 @@ run_simulation(ParallelEnv const &       par_env,
     // const auto st_params = TwoFluidShockTubeParams(config_map);
     const auto st_name = config_map.getString("two_fluid_shock_tube", "name", "shock_tube");
 
-    const auto cell_var_ids = std::vector<int32_t>{
-      solver_five_eq->model().get_fieldmap()[FiveEq::ID0],
-      solver_five_eq->model().get_fieldmap()[FiveEq::ID1],
-      solver_five_eq->model().get_fieldmap()[FiveEq::IE],
-      solver_five_eq->model().get_fieldmap()[FiveEq::IU],
-      solver_five_eq->model().get_fieldmap()[FiveEq::IPHI],
-    };
+    // 1. save main variables
+    {
+      const auto cell_var_ids = std::vector<int32_t>{
+        solver_five_eq->model().get_fieldmap()[FiveEq::ID0],
+        solver_five_eq->model().get_fieldmap()[FiveEq::ID1],
+        solver_five_eq->model().get_fieldmap()[FiveEq::IE],
+        solver_five_eq->model().get_fieldmap()[FiveEq::IU],
+        solver_five_eq->model().get_fieldmap()[FiveEq::IPHI],
+      };
 
-    const auto cell_var_names = std::vector<std::string>{ "rho0", "rho1", "etot", "rhou", "phi" };
+      const auto cell_var_names = std::vector<std::string>{ "rho0", "rho1", "etot", "rhou", "phi" };
 
-    kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
-      solver_five_eq->U(),
-      0,
-      solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
-      IX,
-      solver_five_eq->mesh_map()->orchard_keys(),
-      cell_var_ids,
-      cell_var_names,
-      st_name,
-      par_env,
-      config_map);
+      kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
+        solver_five_eq->U(),
+        0,
+        solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+        IX,
+        solver_five_eq->mesh_map()->orchard_keys(),
+        cell_var_ids,
+        cell_var_names,
+        st_name,
+        par_env,
+        config_map);
+    }
+
+    // 2. save pressure
+    {
+      const auto thermal_pressure =
+        solver_five_eq->get_derived_quantity(godunov_five_eq::DERIVED_QUANTITY::THERMAL_PRESSURE);
+
+      const auto cell_var_ids = std::vector<int32_t>{ 0 };
+      const auto cell_var_names = std::vector<std::string>{ "pressure" };
+      kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
+        thermal_pressure,
+        0,
+        solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+        IX,
+        solver_five_eq->mesh_map()->orchard_keys(),
+        cell_var_ids,
+        cell_var_names,
+        st_name,
+        par_env,
+        config_map);
+    }
+
+    // 3. save speed of sound
+    {
+      const auto speed_of_sound =
+        solver_five_eq->get_derived_quantity(godunov_five_eq::DERIVED_QUANTITY::SPEED_OF_SOUND);
+
+      const auto cell_var_ids = std::vector<int32_t>{ 0 };
+      const auto cell_var_names = std::vector<std::string>{ "speed_of_sound" };
+      kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
+        speed_of_sound,
+        0,
+        solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+        IX,
+        solver_five_eq->mesh_map()->orchard_keys(),
+        cell_var_ids,
+        cell_var_names,
+        st_name,
+        par_env,
+        config_map);
+    }
 
   } // shock tube post-processing
 

@@ -40,6 +40,8 @@
 #include <godunov_five_eq/scheme/GodunovImplemV0.h>
 //  #include <godunov_five_eq/scheme/GodunovImplemV1.h>
 //  #include <godunov_five_eq/scheme/GodunovImplemV2.h>
+#include <godunov_five_eq/utils/ComputeDerivedQuantities.h>
+
 
 // AMR services
 #ifdef KALYPSSO_CORE_USE_MPI
@@ -272,6 +274,14 @@ public:
   //! monitoring total memory allocated on device.
   uint64_t
   total_mem_size_in_bytes();
+
+  //! compute and return a derived quantity on device
+  DataArrayBlock_t
+  get_derived_quantity(DERIVED_QUANTITY derived_quantity);
+
+  //! compute and return a derived quantity on host
+  DataArrayBlockHost_t
+  get_derived_quantity_on_host(DERIVED_QUANTITY derived_quantity);
 
   IntegralMixingMonitor<dim, device_t> &
   mixing_monitor();

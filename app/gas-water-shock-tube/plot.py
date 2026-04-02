@@ -11,7 +11,7 @@ from matplotlib import rc
 rc('text', usetex=True)
 
 import configparser
-import StiffenedGas as sg
+#import StiffenedGas as sg
 
 def do_plot(ini_filename1, ini_filename2, shock_tube_name):
 
@@ -37,8 +37,8 @@ def do_plot(ini_filename1, ini_filename2, shock_tube_name):
 
     prefix2 = config2.get('two_fluid_shock_tube', 'name', fallback='')
 
-    eos = sg.StiffenedGas(gamma0, gamma1, pinf0, pinf1)
-    compute_pressure = np.vectorize(eos.mixture_pressure)
+    #eos = sg.StiffenedGas(gamma0, gamma1, pinf0, pinf1)
+    #compute_pressure = np.vectorize(eos.mixture_pressure)
 
     # load numerical solution
     pos1 = np.load(prefix1+'_positions.npy')
@@ -50,7 +50,9 @@ def do_plot(ini_filename1, ini_filename2, shock_tube_name):
     rhou1 = np.load(prefix1+'_rhou.npy')
     level1 = np.load(prefix1+'_level.npy')
     eint1 = etot1 / rho1 - 0.5 * rhou1**2 / rho1**2
-    P1 = compute_pressure(rho1, eint1, phi1)
+    #P1 = compute_pressure(rho1, eint1, phi1)
+    P1 = np.load(prefix1+'_pressure.npy')
+    c1 = np.load(prefix1+'_speed_of_sound.npy')
 
     pos2 = np.load(prefix2+'_positions.npy')
     rho2_0 = np.load(prefix2+'_rho0.npy')
@@ -61,13 +63,16 @@ def do_plot(ini_filename1, ini_filename2, shock_tube_name):
     rhou2 = np.load(prefix2+'_rhou.npy')
     level2 = np.load(prefix2+'_level.npy')
     eint2 = etot2 / rho2 - 0.5 * rhou2**2 / rho2**2
-    P2 = compute_pressure(rho2, eint2, phi2)
+    #P2 = compute_pressure(rho2, eint2, phi2)
+    P2 = np.load(prefix2+'_pressure.npy')
+    c2 = np.load(prefix2+'_speed_of_sound.npy')
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4, ncols=1, figsize=(11,13))
 
     ax1.plot(pos1, phi1, 'r-', label='phi')
     ax2.plot(pos1, rho1, 'g-', label='rho')
     ax3.plot(pos1, P1, 'b-', label='pressure')
+    #ax3.plot(pos1, c1, 'b-', label='speed of sound')
     #ax3.semilogy(pos1, P1, 'b-', label='pressure')
     ax4.plot(pos1, level1, 'k-', label='AMR levels')
     #ax4.plot(pos1, rhou1, 'k-', label='rho_u')
@@ -75,6 +80,7 @@ def do_plot(ini_filename1, ini_filename2, shock_tube_name):
     ax1.plot(pos2, phi2, 'r--', label='phi thinc')
     ax2.plot(pos2, rho2, 'g--', label='rho thinc')
     ax3.plot(pos2, P2, 'b--', label='pressure thinc')
+    #ax3.plot(pos2, c2, 'b--', label='speed of sound thinc')
     #ax3.semilogy(pos2, P2, 'b--', label='pressure thinc')
     ax4.plot(pos2, level2, 'k-', label='AMR levels thinc')
     #ax4.plot(pos2, rhou2, 'k--', label='rho_u thinc')

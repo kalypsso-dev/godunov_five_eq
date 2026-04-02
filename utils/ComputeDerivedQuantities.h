@@ -34,6 +34,7 @@ namespace godunov_five_eq
  *
  * - (mixture) density
  * - (mixture) thermal pressure
+ * - (mixture) speed of sound
  * - (mixture) specific kinetic energy
  * - (mixture) local Mach number : M =|u|/c where c is local (mixture) speed of sound
  */
@@ -41,6 +42,7 @@ namespace godunov_five_eq
 BETTER_ENUM(DERIVED_QUANTITY, uint32_t,
             RHO_MIX,
             THERMAL_PRESSURE,
+            SPEED_OF_SOUND,
             SPECIFIC_EKIN,
             LOCAL_MACH_NUMBER
   )
@@ -88,13 +90,14 @@ struct ComputeDerivedQuantities
   // ==========================================================================
   // ==========================================================================
   static DataArrayBlock_t
-  run(DataArrayBlock_t          Udata,
-      FieldMap<models::FiveEq>  fm,
-      DERIVED_QUANTITY          quantity,
-      HydroSettings             hydro_settings,
-      eos::EosWrapper<device_t> eos,
-      int64_t                   iOct_begin,
-      int64_t                   num_octs)
+  run(DataArrayBlock_t                     Udata,
+      FieldMap<models::FiveEq>             fm,
+      DERIVED_QUANTITY                     quantity,
+      HydroSettings                        hydro_settings,
+      eos::EosWrapper<device_t>            eos,
+      int64_t                              iOct_begin,
+      int64_t                              num_octs,
+      [[maybe_unused]] ParallelEnv const & par_env)
   {
     check_args_validity(Udata, iOct_begin, num_octs);
 
@@ -138,6 +141,11 @@ struct ComputeDerivedQuantities
           res(cell_index, 0, iOct) =
             models::compute_mixture_pressure<dim>(uLoc, hydro_settings, eos);
         }
+        else if (quantity._to_integral() == +DERIVED_QUANTITY::SPEED_OF_SOUND)
+        {
+          HydroState<dim> qLoc;
+          res(cell_index, 0, iOct) = models::computePrimitives(uLoc, qLoc, hydro_settings, eos);
+        }
         else if (quantity._to_integral() == +DERIVED_QUANTITY::SPECIFIC_EKIN)
         {
           res(cell_index, 0, iOct) = models::compute_mixture_ekin<dim>(uLoc, hydro_settings);
@@ -171,34 +179,71 @@ struct ComputeDerivedQuantities
       HydroSettings             hydro_settings,
       eos::EosWrapper<device_t> eos,
       int64_t                   iOct_begin,
-      int64_t                   num_octs)
+      int64_t                   num_octs,
+      ParallelEnv const &       par_env)
   {
     if (quantity == "rho_mix")
     {
-      return run(Udata, fm, DERIVED_QUANTITY::RHO_MIX, hydro_settings, eos, iOct_begin, num_octs);
+      return run(
+        Udata, fm, DERIVED_QUANTITY::RHO_MIX, hydro_settings, eos, iOct_begin, num_octs, par_env);
     }
     else if (quantity == "thermal_pressure")
     {
-      return run(
-        Udata, fm, DERIVED_QUANTITY::THERMAL_PRESSURE, hydro_settings, eos, iOct_begin, num_octs);
+      return run(Udata,
+                 fm,
+                 DERIVED_QUANTITY::THERMAL_PRESSURE,
+                 hydro_settings,
+                 eos,
+                 iOct_begin,
+                 num_octs,
+                 par_env);
+    }
+    else if (quantity == "speed_of_sound")
+    {
+      return run(Udata,
+                 fm,
+                 DERIVED_QUANTITY::SPEED_OF_SOUND,
+                 hydro_settings,
+                 eos,
+                 iOct_begin,
+                 num_octs,
+                 par_env);
     }
     else if (quantity == "specific_ekin")
     {
-      return run(
-        Udata, fm, DERIVED_QUANTITY::SPECIFIC_EKIN, hydro_settings, eos, iOct_begin, num_octs);
+      return run(Udata,
+                 fm,
+                 DERIVED_QUANTITY::SPECIFIC_EKIN,
+                 hydro_settings,
+                 eos,
+                 iOct_begin,
+                 num_octs,
+                 par_env);
     }
     else if (quantity == "local_mach_number")
     {
-      return run(
-        Udata, fm, DERIVED_QUANTITY::LOCAL_MACH_NUMBER, hydro_settings, eos, iOct_begin, num_octs);
+      return run(Udata,
+                 fm,
+                 DERIVED_QUANTITY::LOCAL_MACH_NUMBER,
+                 hydro_settings,
+                 eos,
+                 iOct_begin,
+                 num_octs,
+                 par_env);
     }
     else
     {
       KALYPSSO_ERROR(
         "ComputeDerivedQuantity: unknow quantity (check your input parameter file) - use "
         "thermal pressure instead.");
-      return run(
-        Udata, fm, DERIVED_QUANTITY::THERMAL_PRESSURE, hydro_settings, eos, iOct_begin, num_octs);
+      return run(Udata,
+                 fm,
+                 DERIVED_QUANTITY::THERMAL_PRESSURE,
+                 hydro_settings,
+                 eos,
+                 iOct_begin,
+                 num_octs,
+                 par_env);
     }
   } // run
 
