@@ -276,12 +276,12 @@ public:
   total_mem_size_in_bytes();
 
   //! compute and return a derived quantity on device
-  DataArrayBlock_t
-  get_derived_quantity(DERIVED_QUANTITY derived_quantity);
+  auto
+  get_derived_quantity(DERIVED_QUANTITY derived_quantity) -> DataArrayBlock_t;
 
   //! compute and return a derived quantity on host
-  DataArrayBlockHost_t
-  get_derived_quantity_on_host(DERIVED_QUANTITY derived_quantity);
+  auto
+  get_derived_quantity_on_host(DERIVED_QUANTITY derived_quantity) -> DataArrayBlockHost_t;
 
   IntegralMixingMonitor<dim, device_t> &
   mixing_monitor();
