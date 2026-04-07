@@ -806,7 +806,7 @@ SolverGodunovFiveEq<dim, device_t>::mixing_monitor_record()
 // =======================================================
 template <size_t dim, typename device_t>
 void
-SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5(bool pure_checkpoint)
+SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pure_checkpoint)
 {
 
 #ifdef KALYPSSO_CORE_USE_HDF5
