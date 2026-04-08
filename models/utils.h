@@ -137,7 +137,8 @@ computePrimitives(const HydroState<2> &          u,
   real_t eint = u[FiveEq::IE] / d - ekin;
 
   // compute pressure and speed of sound
-  const auto p = eos.mixture_pressure(d, eint, u[FiveEq::IPHI]);
+  const auto p = eos.mixture_pressure(
+    d, eint, u[FiveEq::IPHI], 1 - u[FiveEq::IPHI], u[FiveEq::ID0], u[FiveEq::ID1]);
 
   q[FiveEq::ID] = d;
   q[FiveEq::ID0] = u[FiveEq::ID0];
@@ -149,7 +150,8 @@ computePrimitives(const HydroState<2> &          u,
 
   hydro_sanitizer<2>(q);
 
-  return eos.mixture_sound_speed(p, d, q[FiveEq::IPHI]);
+  return eos.mixture_sound_speed(
+    d, p, q[FiveEq::IPHI], 1 - q[FiveEq::IPHI], u[FiveEq::ID0], u[FiveEq::ID1]);
 
 } // computePrimitives - 2d
 
@@ -187,7 +189,8 @@ computePrimitives(const HydroState<3> &          u,
   real_t eint = u[FiveEq::IE] / d - ekin;
 
   // compute pressure and speed of sound
-  real_t p = eos.mixture_pressure(d, eint, u[FiveEq::IPHI]);
+  real_t p = eos.mixture_pressure(
+    d, eint, u[FiveEq::IPHI], 1 - u[FiveEq::IPHI], u[FiveEq::ID0], u[FiveEq::ID1]);
 
   q[FiveEq::ID] = d;
   q[FiveEq::ID0] = u[FiveEq::ID0];
@@ -200,7 +203,8 @@ computePrimitives(const HydroState<3> &          u,
 
   hydro_sanitizer<3>(q);
 
-  return eos.mixture_sound_speed(p, d, q[FiveEq::IPHI]);
+  return eos.mixture_sound_speed(
+    d, p, q[FiveEq::IPHI], 1 - q[FiveEq::IPHI], u[FiveEq::ID0], u[FiveEq::ID1]);
 
 } // computePrimitives - 3d
 
@@ -265,7 +269,8 @@ compute_mixture_pressure(const HydroState<dim> &        u,
   const auto eint = u[FiveEq::IE] / d - ekin;
 
   // compute pressure
-  return eos.mixture_pressure(d, eint, u[FiveEq::IPHI]);
+  return eos.mixture_pressure(
+    d, eint, u[FiveEq::IPHI], 1 - u[FiveEq::IPHI], u[FiveEq::ID0], u[FiveEq::ID1]);
 
 } // compute_mixture_pressure
 

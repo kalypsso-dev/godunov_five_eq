@@ -129,13 +129,14 @@ InitStaticDropletDataFunctor<dim, device_t>::operator()(const int32_t & global_i
   auto eint_liq = m_initial_states(0)[Hydro::IE];
   auto eint_gas = m_initial_states(1)[Hydro::IE];
 
-  auto p_liq = m_eos_wrapper.mixture_pressure(rho_liq, eint_liq, ONE_F);
-  // auto p_gas = m_eos_wrapper.mixture_pressure(rho_gas, eint_gas, ZERO_F);
+  auto p_liq = m_eos_wrapper.mixture_pressure(rho_liq, eint_liq, ONE_F, ZERO_F, rho_liq, ZERO_F);
+  // auto p_gas = m_eos_wrapper.mixture_pressure(rho_gas, eint_gas, ZERO_F, ONE_F, ZERO_F, rho_gas);
 
   // TODO (once capilarity is implemented): update p_liq with Laplace term
   // p_liq += delta_p_laplace;
   // update eint_liq
-  eint_liq = rho_liq * m_eos_wrapper.mixture_specific_eint(p_liq, rho_liq, ONE_F);
+  eint_liq =
+    rho_liq * m_eos_wrapper.mixture_specific_eint(rho_liq, p_liq, ONE_F, ZERO_F, rho_liq, ZERO_F);
 
   const auto eint_mixed = phi_liq * eint_liq + phi_gas * eint_gas;
 

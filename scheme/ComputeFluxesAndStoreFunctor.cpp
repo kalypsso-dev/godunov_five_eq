@@ -141,7 +141,7 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::reconstruct_state_2d(const HydroSta
   auto const & u = q[Hydro::IU];
   auto const & v = q[Hydro::IV];
   // auto const w = 0.0;
-  const real_t c = m_eos.mixture_sound_speed(p, r, q[Hydro::IPHI]);
+  const real_t c = m_eos.mixture_sound_speed(r, p, q[Hydro::IPHI], 1 - q[Hydro::IPHI], r0, r1);
 
   auto const drx0 = m_slopes_x(is, js, m_fm[Hydro::ID0], iOct_local);
   auto const drx1 = m_slopes_x(is, js, m_fm[Hydro::ID1], iOct_local);
@@ -237,7 +237,7 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::reconstruct_state_3d(const HydroSta
   const auto & u = q[Hydro::IU];
   const auto & v = q[Hydro::IV];
   const auto & w = q[Hydro::IW];
-  const real_t c = m_eos.mixture_sound_speed(p, r, q[Hydro::IPHI]);
+  const real_t c = m_eos.mixture_sound_speed(r, p, q[Hydro::IPHI], 1 - q[Hydro::IPHI], r0, r1);
 
   // retrieve variations = dx * slopes
   const auto drx0 = m_slopes_x(is, js, ks, m_fm[Hydro::ID0], iOct_local);

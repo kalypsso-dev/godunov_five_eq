@@ -55,7 +55,12 @@ public:
    */
   KOKKOS_INLINE_FUNCTION
   real_t
-  mixture_pressure(real_t rho, real_t eint, real_t phi0) const
+  mixture_pressure(real_t                  rho,
+                   real_t                  eint,
+                   real_t                  phi0,
+                   [[maybe_unused]] real_t phi1,
+                   [[maybe_unused]] real_t phi_rho0,
+                   [[maybe_unused]] real_t phi_rho1) const
   {
     if (m_eos_type == +core::eos::EOS_TYPE::IDEAL_GAS)
     {
@@ -75,7 +80,12 @@ public:
    */
   KOKKOS_INLINE_FUNCTION
   real_t
-  mixture_specific_eint(real_t pressure, real_t rho, real_t phi0) const
+  mixture_specific_eint(real_t                  rho,
+                        real_t                  pressure,
+                        real_t                  phi0,
+                        [[maybe_unused]] real_t phi1,
+                        [[maybe_unused]] real_t phi_rho0,
+                        [[maybe_unused]] real_t phi_rho1) const
   {
     if (m_eos_type == +core::eos::EOS_TYPE::IDEAL_GAS)
     {
@@ -95,7 +105,12 @@ public:
    */
   KOKKOS_INLINE_FUNCTION
   real_t
-  mixture_sound_speed(real_t pressure, real_t rho, real_t phi0) const
+  mixture_sound_speed(real_t                  rho,
+                      real_t                  pressure,
+                      real_t                  phi0,
+                      [[maybe_unused]] real_t phi1,
+                      [[maybe_unused]] real_t phi_rho0,
+                      [[maybe_unused]] real_t phi_rho1) const
   {
     if (m_eos_type == +core::eos::EOS_TYPE::IDEAL_GAS)
     {

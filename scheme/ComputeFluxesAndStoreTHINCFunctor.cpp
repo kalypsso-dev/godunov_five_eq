@@ -230,7 +230,7 @@ ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::reconstruct_state_2d(
   auto const & v = q[Hydro::IV];
   // auto const w = 0.0;
   const auto   r = r0 + r1;
-  const real_t c = m_eos.mixture_sound_speed(p, r, q[Hydro::IPHI]);
+  const real_t c = m_eos.mixture_sound_speed(r, p, q[Hydro::IPHI], 1 - q[Hydro::IPHI], r0, r1);
 
   auto const dpx = m_slopes_x(is, js, m_fm[Hydro::IP], iOct_local);
   auto const dux = m_slopes_x(is, js, m_fm[Hydro::IU], iOct_local);
@@ -390,7 +390,7 @@ ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::reconstruct_state_3d(
   const auto & v = q[Hydro::IV];
   const auto & w = q[Hydro::IW];
   const auto   r = r0 + r1;
-  const real_t c = m_eos.mixture_sound_speed(p, r, q[Hydro::IPHI]);
+  const real_t c = m_eos.mixture_sound_speed(r, p, q[Hydro::IPHI], 1 - q[Hydro::IPHI], r0, r1);
 
   // retrieve variations = dx * slopes
   const auto dpx = m_slopes_x(is, js, ks, m_fm[Hydro::IP], iOct_local);

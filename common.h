@@ -116,7 +116,8 @@ get_region_init_state(const int32_t                    i_region,
   const auto & rho = q[Hydro::ID];
 
   // mixed state
-  const auto eint_specific = eos_wrapper.mixture_specific_eint(p, rho, phi0);
+  const auto eint_specific =
+    eos_wrapper.mixture_specific_eint(rho, p, phi0, 1 - phi0, phi_rho[0], phi_rho[1]);
 
   const real_t ekin_specific = [](HydroState<dim> & qq) {
     if constexpr (dim == 2)
