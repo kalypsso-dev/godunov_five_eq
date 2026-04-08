@@ -65,10 +65,6 @@ public:
     {
       return m_sg_mixture.mixture_pressure(rho, eint, phi0);
     }
-    else if (m_eos_type == +core::eos::EOS_TYPE::MIE_GRUNEISEN)
-    {
-      // TODO
-    }
     return ZERO_F;
   }
 
@@ -89,10 +85,6 @@ public:
     {
       return m_sg_mixture.mixture_specific_eint(pressure, rho, phi0);
     }
-    else if (m_eos_type == +core::eos::EOS_TYPE::MIE_GRUNEISEN)
-    {
-      // TODO
-    }
     return ZERO_F;
   }
 
@@ -112,10 +104,6 @@ public:
     else if (m_eos_type == +core::eos::EOS_TYPE::STIFFENED_GAS)
     {
       return m_sg_mixture.mixture_sound_speed(pressure, rho, phi0);
-    }
-    else if (m_eos_type == +core::eos::EOS_TYPE::MIE_GRUNEISEN)
-    {
-      // TODO
     }
     return ZERO_F;
   }
