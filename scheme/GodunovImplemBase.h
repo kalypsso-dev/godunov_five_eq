@@ -25,7 +25,7 @@
 #include <kalypsso/core/THINCParams.h>
 
 #include <godunov_five_eq/models/FiveEq.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 #include <kalypsso/core/models/HydroSettings.h>
 
 // for IO
@@ -203,7 +203,7 @@ public:
   godunov_five_eq::models::FiveEq m_five_eq;
 
   //! Equation of state wrapper
-  eos::EosWrapper<device_t> m_eos;
+  EosWrapper_t<device_t> m_eos;
 
   //! THINC (interface reconstruction)
   THINCParams m_thinc_params;

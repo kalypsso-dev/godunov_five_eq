@@ -19,16 +19,16 @@ namespace godunov_five_eq
 // ====================================================================
 template <size_t dim, typename device_t>
 ComputeDtFiveEqFunctor<dim, device_t>::ComputeDtFiveEqFunctor(
-  ConfigMap const &         config_map,
-  orchard_key_view_t        orchard_keys,
-  int32_t                   local_num_octants,
-  HydroSettings             hydro_settings,
-  FieldMap<models::FiveEq>  fm,
-  block_size_t<dim>         block_sizes,
-  DataArrayBlock_t          Udata,
-  eos::EosWrapper<device_t> eos,
-  bool                      gravity_enabled,
-  UniformGravityField<dim>  gravity_field)
+  ConfigMap const &        config_map,
+  orchard_key_view_t       orchard_keys,
+  int32_t                  local_num_octants,
+  HydroSettings            hydro_settings,
+  FieldMap<models::FiveEq> fm,
+  block_size_t<dim>        block_sizes,
+  DataArrayBlock_t         Udata,
+  EosWrapper_t<device_t>   eos,
+  bool                     gravity_enabled,
+  UniformGravityField<dim> gravity_field)
   : m_orchard_keys(orchard_keys)
   , m_local_num_octants(local_num_octants)
   , m_hydro_settings(hydro_settings)
@@ -46,15 +46,15 @@ ComputeDtFiveEqFunctor<dim, device_t>::ComputeDtFiveEqFunctor(
 // ====================================================================
 template <size_t dim, typename device_t>
 void
-ComputeDtFiveEqFunctor<dim, device_t>::apply(ConfigMap const &         config_map,
-                                             orchard_key_view_t        orchard_keys,
-                                             int32_t                   local_num_octants,
-                                             HydroSettings             hydro_settings,
-                                             FieldMap<models::FiveEq>  fm,
-                                             block_size_t<dim>         block_sizes,
-                                             DataArrayBlock_t          Udata,
-                                             eos::EosWrapper<device_t> eos,
-                                             real_t &                  invDt)
+ComputeDtFiveEqFunctor<dim, device_t>::apply(ConfigMap const &        config_map,
+                                             orchard_key_view_t       orchard_keys,
+                                             int32_t                  local_num_octants,
+                                             HydroSettings            hydro_settings,
+                                             FieldMap<models::FiveEq> fm,
+                                             block_size_t<dim>        block_sizes,
+                                             DataArrayBlock_t         Udata,
+                                             EosWrapper_t<device_t>   eos,
+                                             real_t &                 invDt)
 {
   const auto gravity_enabled = config_map.getBool("gravity", "enabled", false);
   const auto gravity_field = get_uniform_gravity_vector<dim>(config_map);

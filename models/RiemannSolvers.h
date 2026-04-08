@@ -18,7 +18,7 @@
 #include <kalypsso/core/models/riemann_solver_types.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/models/FiveEq.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 namespace kalypsso
 {
@@ -54,10 +54,10 @@ struct RiemannState
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION RiemannState<dim>
-                       riemann_hllc(HydroState<dim> const &           qleft,
-                                    HydroState<dim> const &           qright,
-                                    HydroSettings const &             settings,
-                                    eos::EosWrapper<device_t> const & eos)
+                       riemann_hllc(HydroState<dim> const &        qleft,
+                                    HydroState<dim> const &        qright,
+                                    HydroSettings const &          settings,
+                                    EosWrapper_t<device_t> const & eos)
 {
   RiemannState<dim> riemann_state;
   auto &            flux = riemann_state.flux;
@@ -269,10 +269,10 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION RiemannState<dim>
-                       riemann_hllc_compact(HydroState<dim> const &           qL,
-                                            HydroState<dim> const &           qR,
-                                            HydroSettings const &             settings,
-                                            eos::EosWrapper<device_t> const & eos)
+                       riemann_hllc_compact(HydroState<dim> const &        qL,
+                                            HydroState<dim> const &        qR,
+                                            HydroSettings const &          settings,
+                                            EosWrapper_t<device_t> const & eos)
 {
   RiemannState<dim> riemann_state;
   auto &            flux = riemann_state.flux;
@@ -455,10 +455,10 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION RiemannState<dim>
-                       riemann_hydro(HydroState<dim> const &           qleft,
-                                     HydroState<dim> const &           qright,
-                                     HydroSettings const &             settings,
-                                     eos::EosWrapper<device_t> const & eos)
+                       riemann_hydro(HydroState<dim> const &        qleft,
+                                     HydroState<dim> const &        qright,
+                                     HydroSettings const &          settings,
+                                     EosWrapper_t<device_t> const & eos)
 {
 
   if (settings.riemannSolverType == +RiemannSolverType::HLLC)

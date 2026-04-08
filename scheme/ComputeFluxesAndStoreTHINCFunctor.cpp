@@ -20,23 +20,23 @@ namespace godunov_five_eq
 // ====================================================================
 template <size_t dim, typename device_t>
 ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::ComputeFluxesAndStoreTHINCFunctor(
-  orchard_key_view_t        orchard_keys,
-  AMRMeshInfo               amr_mesh_info,
-  DataArrayBlock_t          fluxes,
-  DataArrayGhostedBlock_t   q_ghosted,
-  DataArrayGhostedBlock_t   slopes_x,
-  DataArrayGhostedBlock_t   slopes_y,
-  DataArrayGhostedBlock_t   slopes_z,
-  FieldMap<models::FiveEq>  fm,
-  int32_t                   iOct_flux_offset,
-  int32_t                   num_quads,
-  int                       direction,
-  HydroSettings             hydro_settings,
-  eos::EosWrapper<device_t> eos,
-  real_t                    dt,
-  real_t                    scaling_factor,
-  TimeIntegrator            time_integrator,
-  THINCParams               thinc_params)
+  orchard_key_view_t       orchard_keys,
+  AMRMeshInfo              amr_mesh_info,
+  DataArrayBlock_t         fluxes,
+  DataArrayGhostedBlock_t  q_ghosted,
+  DataArrayGhostedBlock_t  slopes_x,
+  DataArrayGhostedBlock_t  slopes_y,
+  DataArrayGhostedBlock_t  slopes_z,
+  FieldMap<models::FiveEq> fm,
+  int32_t                  iOct_flux_offset,
+  int32_t                  num_quads,
+  int                      direction,
+  HydroSettings            hydro_settings,
+  EosWrapper_t<device_t>   eos,
+  real_t                   dt,
+  real_t                   scaling_factor,
+  TimeIntegrator           time_integrator,
+  THINCParams              thinc_params)
   : m_orchard_keys_device(orchard_keys)
   , m_amr_mesh_info(amr_mesh_info)
   , m_Fluxes(fluxes)
@@ -62,21 +62,21 @@ ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::ComputeFluxesAndStoreTHINCFunc
 // ==============================================================
 template <size_t dim, typename device_t>
 void
-ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(ConfigMap const &         config_map,
-                                                        orchard_key_view_t        orchard_keys,
-                                                        AMRMeshInfo               amr_mesh_info,
-                                                        DataArrayBlock_t          fluxes,
-                                                        DataArrayGhostedBlock_t   q_ghosted,
-                                                        DataArrayGhostedBlock_t   slopes_x,
-                                                        DataArrayGhostedBlock_t   slopes_y,
-                                                        DataArrayGhostedBlock_t   slopes_z,
-                                                        FieldMap<models::FiveEq>  fm,
-                                                        int32_t                   iOct_flux_offset,
-                                                        int32_t                   num_quads,
-                                                        int                       direction,
-                                                        HydroSettings             hydro_settings,
-                                                        eos::EosWrapper<device_t> eos,
-                                                        real_t                    dt)
+ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(ConfigMap const &        config_map,
+                                                        orchard_key_view_t       orchard_keys,
+                                                        AMRMeshInfo              amr_mesh_info,
+                                                        DataArrayBlock_t         fluxes,
+                                                        DataArrayGhostedBlock_t  q_ghosted,
+                                                        DataArrayGhostedBlock_t  slopes_x,
+                                                        DataArrayGhostedBlock_t  slopes_y,
+                                                        DataArrayGhostedBlock_t  slopes_z,
+                                                        FieldMap<models::FiveEq> fm,
+                                                        int32_t                  iOct_flux_offset,
+                                                        int32_t                  num_quads,
+                                                        int                      direction,
+                                                        HydroSettings            hydro_settings,
+                                                        EosWrapper_t<device_t>   eos,
+                                                        real_t                   dt)
 {
   // Important note: the caller is responsible for providing a flux array with the right shape.
   {

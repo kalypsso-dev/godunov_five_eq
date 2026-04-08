@@ -122,7 +122,7 @@ private:
   HydroSettings m_hydro_settings;
 
   //! EOS parameters
-  eos::EosWrapper<device_t> m_eos;
+  EosWrapper_t<device_t> m_eos;
 
   //! time step
   real_t m_dt;
@@ -146,45 +146,45 @@ public:
    * \param[in]  time step (as computed by CFL condition)
    *
    */
-  ComputeFluxesAndStoreFunctor(orchard_key_view_t        orchard_keys,
-                               AMRMeshInfo               amr_mesh_info,
-                               DataArrayBlock_t          fluxes,
-                               DataArrayGhostedBlock_t   q_ghosted,
-                               DataArrayGhostedBlock_t   slopes_x,
-                               DataArrayGhostedBlock_t   slopes_y,
-                               DataArrayGhostedBlock_t   slopes_z,
-                               FieldMap<models::FiveEq>  fm,
-                               int32_t                   iOct_flux_offset,
-                               int32_t                   num_quads,
-                               int                       direction,
-                               HydroSettings             hydro_settings,
-                               eos::EosWrapper<device_t> eos,
-                               real_t                    dt,
-                               real_t                    scaling_factor,
-                               bool                      gravity_enabled,
-                               UniformGravityField<dim>  gravity_field,
-                               TimeIntegrator            time_integrator);
+  ComputeFluxesAndStoreFunctor(orchard_key_view_t       orchard_keys,
+                               AMRMeshInfo              amr_mesh_info,
+                               DataArrayBlock_t         fluxes,
+                               DataArrayGhostedBlock_t  q_ghosted,
+                               DataArrayGhostedBlock_t  slopes_x,
+                               DataArrayGhostedBlock_t  slopes_y,
+                               DataArrayGhostedBlock_t  slopes_z,
+                               FieldMap<models::FiveEq> fm,
+                               int32_t                  iOct_flux_offset,
+                               int32_t                  num_quads,
+                               int                      direction,
+                               HydroSettings            hydro_settings,
+                               EosWrapper_t<device_t>   eos,
+                               real_t                   dt,
+                               real_t                   scaling_factor,
+                               bool                     gravity_enabled,
+                               UniformGravityField<dim> gravity_field,
+                               TimeIntegrator           time_integrator);
 
   // ==============================================================
   // ==============================================================
   //! static method which does it all: create and execute functor with range policy
   //!
   static void
-  apply(ConfigMap const &         config_map,
-        orchard_key_view_t        orchard_keys,
-        AMRMeshInfo               amr_mesh_info,
-        DataArrayBlock_t          fluxes,
-        DataArrayGhostedBlock_t   q_ghosted,
-        DataArrayGhostedBlock_t   slopes_x,
-        DataArrayGhostedBlock_t   slopes_y,
-        DataArrayGhostedBlock_t   slopes_z,
-        FieldMap<models::FiveEq>  fm,
-        int32_t                   iOct_flux_offset,
-        int32_t                   num_quads,
-        int                       direction,
-        HydroSettings             hydro_settings,
-        eos::EosWrapper<device_t> eos,
-        real_t                    dt);
+  apply(ConfigMap const &        config_map,
+        orchard_key_view_t       orchard_keys,
+        AMRMeshInfo              amr_mesh_info,
+        DataArrayBlock_t         fluxes,
+        DataArrayGhostedBlock_t  q_ghosted,
+        DataArrayGhostedBlock_t  slopes_x,
+        DataArrayGhostedBlock_t  slopes_y,
+        DataArrayGhostedBlock_t  slopes_z,
+        FieldMap<models::FiveEq> fm,
+        int32_t                  iOct_flux_offset,
+        int32_t                  num_quads,
+        int                      direction,
+        HydroSettings            hydro_settings,
+        EosWrapper_t<device_t>   eos,
+        real_t                   dt);
 
   // ====================================================================
   // ====================================================================

@@ -29,7 +29,6 @@
 
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/models/FiveEq.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
 #include <godunov_five_eq/common.h>
 
 namespace kalypsso
@@ -54,7 +53,7 @@ struct BCShockBubble
   BCShockBubble(ConfigMap const & config_map)
     : m_xmin(config_map.getReal("mesh", "xmin", KALYPSSO_NUM(0.0)))
   {
-    auto eos_wrapper = eos::EosWrapper<HostDevice>(config_map);
+    auto eos_wrapper = EosWrapper_t<HostDevice>(config_map);
 
     // inflow from the left (same as region 0)
     m_inflow = get_region_init_state<dim>(0, eos_wrapper, config_map);

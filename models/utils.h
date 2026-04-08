@@ -15,7 +15,7 @@
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <kalypsso/core/models/HydroSettings.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 namespace kalypsso
 {
@@ -119,10 +119,10 @@ is_valid_primitive_state(HydroState<dim> const & q)
  */
 template <typename device_t>
 KOKKOS_INLINE_FUNCTION real_t
-computePrimitives(const HydroState<2> &             u,
-                  HydroState<2> &                   q,
-                  HydroSettings const &             settings,
-                  eos::EosWrapper<device_t> const & eos)
+computePrimitives(const HydroState<2> &          u,
+                  HydroState<2> &                q,
+                  HydroSettings const &          settings,
+                  EosWrapper_t<device_t> const & eos)
 {
   const auto smallr = settings.smallr;
 
@@ -168,10 +168,10 @@ computePrimitives(const HydroState<2> &             u,
  */
 template <typename device_t>
 KOKKOS_INLINE_FUNCTION real_t
-computePrimitives(const HydroState<3> &             u,
-                  HydroState<3> &                   q,
-                  HydroSettings const &             settings,
-                  eos::EosWrapper<device_t> const & eos)
+computePrimitives(const HydroState<3> &          u,
+                  HydroState<3> &                q,
+                  HydroSettings const &          settings,
+                  EosWrapper_t<device_t> const & eos)
 {
   const auto smallr = settings.smallr;
 
@@ -249,9 +249,9 @@ compute_mixture_ekin(const HydroState<dim> & u, HydroSettings const & settings)
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION real_t
-compute_mixture_pressure(const HydroState<dim> &           u,
-                         HydroSettings const &             settings,
-                         eos::EosWrapper<device_t> const & eos)
+compute_mixture_pressure(const HydroState<dim> &        u,
+                         HydroSettings const &          settings,
+                         EosWrapper_t<device_t> const & eos)
 {
   const auto smallr = settings.smallr;
 
