@@ -22,10 +22,10 @@ namespace kalypsso
 namespace godunov_five_eq
 {
 
-template <typename device_t>
-using EosWrapper_t = eos::EosWrapper<device_t>;
 // template <typename device_t>
-// using EosWrapper_t = core::eos::MieGruneisenMixture<device_t>;
+// using EosWrapper_t = eos::EosWrapper<device_t>;
+template <typename device_t>
+using EosWrapper_t = core::eos::MieGruneisenMixture<device_t>;
 
 } // namespace godunov_five_eq
 
