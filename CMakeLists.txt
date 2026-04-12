@@ -5,6 +5,7 @@ set(GODUNOV_FIVE_EQ_SRCS
     border_conditions/FillOutside.h
     common.h
     eos/EosWrapper.h
+    eos/eos_utils.h
     init/init.cpp
     init/init.h
     init/InitDropletAdvection.cpp

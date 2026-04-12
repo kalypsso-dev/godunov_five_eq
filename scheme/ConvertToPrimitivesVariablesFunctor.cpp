@@ -24,7 +24,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
   DataArrayGhostedBlock_t      userdata_out,
   FieldMap<models::FiveEq>     fm,
   HydroSettings                hydro_settings,
-  eos::EosWrapper<device_t>    eos,
+  EosWrapper_t<device_t>       eos,
   CellCenteredProlongationType prolongation)
   : m_stencil_helper(stencil_helper)
   , m_mirror_orchard_keys_device()
@@ -54,7 +54,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
   DataArrayGhostedBlock_t      userdata_out,
   FieldMap<models::FiveEq>     fm,
   HydroSettings                hydro_settings,
-  eos::EosWrapper<device_t>    eos,
+  EosWrapper_t<device_t>       eos,
   CellCenteredProlongationType prolongation)
   : m_stencil_helper(stencil_helper)
   , m_mirror_orchard_keys_device(mirror_orchard_keys)
@@ -77,19 +77,19 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
 template <size_t dim, typename device_t>
 void
 ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_on_group(
-  ConfigMap const &         config_map,
-  amr_hashmap_t             amr_hashmap,
-  orchard_key_view_t        orchard_keys,
-  AMRMeshInfo               amr_mesh_info,
-  int32_t                   iOct_begin,
-  int32_t                   num_octants_in_group,
-  DataArrayBlock_t          userdata_in,
-  DataArrayGhostedBlock_t   userdata_out,
-  FieldMap<models::FiveEq>  fm,
-  brick_size_t<dim>         brick_sizes,
-  Kokkos::Array<bool, dim>  is_brick_periodic,
-  HydroSettings             hydro_settings,
-  eos::EosWrapper<device_t> eos)
+  ConfigMap const &        config_map,
+  amr_hashmap_t            amr_hashmap,
+  orchard_key_view_t       orchard_keys,
+  AMRMeshInfo              amr_mesh_info,
+  int32_t                  iOct_begin,
+  int32_t                  num_octants_in_group,
+  DataArrayBlock_t         userdata_in,
+  DataArrayGhostedBlock_t  userdata_out,
+  FieldMap<models::FiveEq> fm,
+  brick_size_t<dim>        brick_sizes,
+  Kokkos::Array<bool, dim> is_brick_periodic,
+  HydroSettings            hydro_settings,
+  EosWrapper_t<device_t>   eos)
 {
   // make sure the range of octants to process is valid
   assertm((iOct_begin + num_octants_in_group) <= amr_mesh_info.local_num_quadrants(),
@@ -124,18 +124,18 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_on_group(
 template <size_t dim, typename device_t>
 void
 ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_in_mirrors(
-  ConfigMap const &         config_map,
-  amr_hashmap_t             amr_hashmap,
-  orchard_key_view_t        orchard_keys,
-  orchard_key_view_t        mirror_orchard_keys,
-  AMRMeshInfo               amr_mesh_info,
-  DataArrayBlock_t          userdata_in,
-  DataArrayGhostedBlock_t   userdata_out,
-  FieldMap<models::FiveEq>  fm,
-  brick_size_t<dim>         brick_sizes,
-  Kokkos::Array<bool, dim>  is_brick_periodic,
-  HydroSettings             hydro_settings,
-  eos::EosWrapper<device_t> eos)
+  ConfigMap const &        config_map,
+  amr_hashmap_t            amr_hashmap,
+  orchard_key_view_t       orchard_keys,
+  orchard_key_view_t       mirror_orchard_keys,
+  AMRMeshInfo              amr_mesh_info,
+  DataArrayBlock_t         userdata_in,
+  DataArrayGhostedBlock_t  userdata_out,
+  FieldMap<models::FiveEq> fm,
+  brick_size_t<dim>        brick_sizes,
+  Kokkos::Array<bool, dim> is_brick_periodic,
+  HydroSettings            hydro_settings,
+  EosWrapper_t<device_t>   eos)
 {
 
   auto stencil_helper = StencilHelper_t(

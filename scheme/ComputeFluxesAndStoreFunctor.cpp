@@ -18,24 +18,24 @@ namespace godunov_five_eq
 /*************************************************/
 template <size_t dim, typename device_t>
 ComputeFluxesAndStoreFunctor<dim, device_t>::ComputeFluxesAndStoreFunctor(
-  orchard_key_view_t        orchard_keys,
-  AMRMeshInfo               amr_mesh_info,
-  DataArrayBlock_t          fluxes,
-  DataArrayGhostedBlock_t   q_ghosted,
-  DataArrayGhostedBlock_t   slopes_x,
-  DataArrayGhostedBlock_t   slopes_y,
-  DataArrayGhostedBlock_t   slopes_z,
-  FieldMap<models::FiveEq>  fm,
-  int32_t                   iOct_flux_offset,
-  int32_t                   num_quads,
-  int                       direction,
-  HydroSettings             hydro_settings,
-  eos::EosWrapper<device_t> eos,
-  real_t                    dt,
-  real_t                    scaling_factor,
-  bool                      gravity_enabled,
-  UniformGravityField<dim>  gravity_field,
-  TimeIntegrator            time_integrator)
+  orchard_key_view_t       orchard_keys,
+  AMRMeshInfo              amr_mesh_info,
+  DataArrayBlock_t         fluxes,
+  DataArrayGhostedBlock_t  q_ghosted,
+  DataArrayGhostedBlock_t  slopes_x,
+  DataArrayGhostedBlock_t  slopes_y,
+  DataArrayGhostedBlock_t  slopes_z,
+  FieldMap<models::FiveEq> fm,
+  int32_t                  iOct_flux_offset,
+  int32_t                  num_quads,
+  int                      direction,
+  HydroSettings            hydro_settings,
+  EosWrapper_t<device_t>   eos,
+  real_t                   dt,
+  real_t                   scaling_factor,
+  bool                     gravity_enabled,
+  UniformGravityField<dim> gravity_field,
+  TimeIntegrator           time_integrator)
   : m_orchard_keys_device(orchard_keys)
   , m_amr_mesh_info(amr_mesh_info)
   , m_Fluxes(fluxes)
@@ -62,21 +62,21 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::ComputeFluxesAndStoreFunctor(
 // ==============================================================
 template <size_t dim, typename device_t>
 void
-ComputeFluxesAndStoreFunctor<dim, device_t>::apply(ConfigMap const &         config_map,
-                                                   orchard_key_view_t        orchard_keys,
-                                                   AMRMeshInfo               amr_mesh_info,
-                                                   DataArrayBlock_t          fluxes,
-                                                   DataArrayGhostedBlock_t   q_ghosted,
-                                                   DataArrayGhostedBlock_t   slopes_x,
-                                                   DataArrayGhostedBlock_t   slopes_y,
-                                                   DataArrayGhostedBlock_t   slopes_z,
-                                                   FieldMap<models::FiveEq>  fm,
-                                                   int32_t                   iOct_flux_offset,
-                                                   int32_t                   num_quads,
-                                                   int                       direction,
-                                                   HydroSettings             hydro_settings,
-                                                   eos::EosWrapper<device_t> eos,
-                                                   real_t                    dt)
+ComputeFluxesAndStoreFunctor<dim, device_t>::apply(ConfigMap const &        config_map,
+                                                   orchard_key_view_t       orchard_keys,
+                                                   AMRMeshInfo              amr_mesh_info,
+                                                   DataArrayBlock_t         fluxes,
+                                                   DataArrayGhostedBlock_t  q_ghosted,
+                                                   DataArrayGhostedBlock_t  slopes_x,
+                                                   DataArrayGhostedBlock_t  slopes_y,
+                                                   DataArrayGhostedBlock_t  slopes_z,
+                                                   FieldMap<models::FiveEq> fm,
+                                                   int32_t                  iOct_flux_offset,
+                                                   int32_t                  num_quads,
+                                                   int                      direction,
+                                                   HydroSettings            hydro_settings,
+                                                   EosWrapper_t<device_t>   eos,
+                                                   real_t                   dt)
 {
   // Important note: the caller is responsible for provide a flux array with right shape.
   {
@@ -141,7 +141,7 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::reconstruct_state_2d(const HydroSta
   auto const & u = q[Hydro::IU];
   auto const & v = q[Hydro::IV];
   // auto const w = 0.0;
-  const real_t c = m_eos.mixture_sound_speed(p, r, q[Hydro::IPHI]);
+  const real_t c = m_eos.mixture_sound_speed(r, p, q[Hydro::IPHI], 1 - q[Hydro::IPHI], r0, r1);
 
   auto const drx0 = m_slopes_x(is, js, m_fm[Hydro::ID0], iOct_local);
   auto const drx1 = m_slopes_x(is, js, m_fm[Hydro::ID1], iOct_local);
@@ -237,7 +237,7 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::reconstruct_state_3d(const HydroSta
   const auto & u = q[Hydro::IU];
   const auto & v = q[Hydro::IV];
   const auto & w = q[Hydro::IW];
-  const real_t c = m_eos.mixture_sound_speed(p, r, q[Hydro::IPHI]);
+  const real_t c = m_eos.mixture_sound_speed(r, p, q[Hydro::IPHI], 1 - q[Hydro::IPHI], r0, r1);
 
   // retrieve variations = dx * slopes
   const auto drx0 = m_slopes_x(is, js, ks, m_fm[Hydro::ID0], iOct_local);

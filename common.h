@@ -15,7 +15,7 @@
 #include <kalypsso/core/DataArrayBlock.h>
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/models/HydroState.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 #include <kalypsso/core/models/HydroSettings.h>
 #include <kalypsso/core/multimaterial_utils.h>
@@ -70,9 +70,9 @@ using InitialStates = Kokkos::View<HydroState<dim> *, device_t>;
  */
 template <size_t dim>
 HydroState<dim>
-get_region_init_state(const int32_t                       i_region,
-                      eos::EosWrapper<HostDevice> const & eos_wrapper,
-                      const ConfigMap &                   config_map)
+get_region_init_state(const int32_t                    i_region,
+                      EosWrapper_t<HostDevice> const & eos_wrapper,
+                      const ConfigMap &                config_map)
 {
   // makes enum Hydro::VarId available
   using Hydro = models::FiveEq;
@@ -116,7 +116,8 @@ get_region_init_state(const int32_t                       i_region,
   const auto & rho = q[Hydro::ID];
 
   // mixed state
-  const auto eint_specific = eos_wrapper.mixture_specific_eint(p, rho, phi0);
+  const auto eint_specific =
+    eos_wrapper.mixture_specific_eint(rho, p, phi0, 1 - phi0, phi_rho[0], phi_rho[1]);
 
   const real_t ekin_specific = [](HydroState<dim> & qq) {
     if constexpr (dim == 2)
@@ -156,7 +157,7 @@ get_initial_states(ConfigMap const & config_map, int nb_regions) -> InitialState
   InitialStates<dim, device_t> initial_states("Initial states", static_cast<uint>(nb_regions));
   auto                         initial_states_host = Kokkos::create_mirror_view(initial_states);
 
-  const auto eos_wrapper = eos::EosWrapper<HostDevice>(config_map);
+  const auto eos_wrapper = EosWrapper_t<HostDevice>(config_map);
 
   for (int i_region = 0; i_region < nb_regions; i_region++)
   {

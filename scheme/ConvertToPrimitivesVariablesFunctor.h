@@ -82,7 +82,7 @@ private:
   HydroSettings m_hydro_settings;
 
   //! EOS parameters
-  eos::EosWrapper<device_t> m_eos;
+  EosWrapper_t<device_t> m_eos;
 
   //! prolongation type
   const CellCenteredProlongationType m_prolongation;
@@ -114,7 +114,7 @@ public:
                                       DataArrayGhostedBlock_t      userdata_out,
                                       FieldMap<models::FiveEq>     fm,
                                       HydroSettings                hydro_settings,
-                                      eos::EosWrapper<device_t>    eos,
+                                      EosWrapper_t<device_t>       eos,
                                       CellCenteredProlongationType prolongation);
 
   //! same as above, but specifying also the mirror keys array
@@ -125,7 +125,7 @@ public:
                                       DataArrayGhostedBlock_t      userdata_out,
                                       FieldMap<models::FiveEq>     fm,
                                       HydroSettings                hydro_settings,
-                                      eos::EosWrapper<device_t>    eos,
+                                      EosWrapper_t<device_t>       eos,
                                       CellCenteredProlongationType prolongation);
 
   // ==============================================================
@@ -134,19 +134,19 @@ public:
   //!
   //! Use this member when computing primitive in a group of octant
   static void
-  apply_on_group(ConfigMap const &         config_map,
-                 amr_hashmap_t             amr_hashmap,
-                 orchard_key_view_t        orchard_keys,
-                 AMRMeshInfo               amr_mesh_info,
-                 int32_t                   iOct_begin,
-                 int32_t                   num_octants_in_group,
-                 DataArrayBlock_t          userdata_in,
-                 DataArrayGhostedBlock_t   userdata_out,
-                 FieldMap<models::FiveEq>  fm,
-                 brick_size_t<dim>         brick_sizes,
-                 Kokkos::Array<bool, dim>  is_brick_periodic,
-                 HydroSettings             hydro_settings,
-                 eos::EosWrapper<device_t> eos);
+  apply_on_group(ConfigMap const &        config_map,
+                 amr_hashmap_t            amr_hashmap,
+                 orchard_key_view_t       orchard_keys,
+                 AMRMeshInfo              amr_mesh_info,
+                 int32_t                  iOct_begin,
+                 int32_t                  num_octants_in_group,
+                 DataArrayBlock_t         userdata_in,
+                 DataArrayGhostedBlock_t  userdata_out,
+                 FieldMap<models::FiveEq> fm,
+                 brick_size_t<dim>        brick_sizes,
+                 Kokkos::Array<bool, dim> is_brick_periodic,
+                 HydroSettings            hydro_settings,
+                 EosWrapper_t<device_t>   eos);
 
   // ==============================================================
   // ==============================================================
@@ -154,18 +154,18 @@ public:
   //!
   //! Use this member when computing primitive only in mirror quadrants.
   static void
-  apply_in_mirrors(ConfigMap const &         config_map,
-                   amr_hashmap_t             amr_hashmap,
-                   orchard_key_view_t        orchard_keys,
-                   orchard_key_view_t        mirror_orchard_keys,
-                   AMRMeshInfo               amr_mesh_info,
-                   DataArrayBlock_t          userdata_in,
-                   DataArrayGhostedBlock_t   userdata_out,
-                   FieldMap<models::FiveEq>  fm,
-                   brick_size_t<dim>         brick_sizes,
-                   Kokkos::Array<bool, dim>  is_brick_periodic,
-                   HydroSettings             hydro_settings,
-                   eos::EosWrapper<device_t> eos);
+  apply_in_mirrors(ConfigMap const &        config_map,
+                   amr_hashmap_t            amr_hashmap,
+                   orchard_key_view_t       orchard_keys,
+                   orchard_key_view_t       mirror_orchard_keys,
+                   AMRMeshInfo              amr_mesh_info,
+                   DataArrayBlock_t         userdata_in,
+                   DataArrayGhostedBlock_t  userdata_out,
+                   FieldMap<models::FiveEq> fm,
+                   brick_size_t<dim>        brick_sizes,
+                   Kokkos::Array<bool, dim> is_brick_periodic,
+                   HydroSettings            hydro_settings,
+                   EosWrapper_t<device_t>   eos);
 
   // ==============================================================
   // ==============================================================

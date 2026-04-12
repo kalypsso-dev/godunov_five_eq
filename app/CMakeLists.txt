@@ -32,6 +32,8 @@ configure_file(test_richtmyer_meshkov_2d.ini test_richtmyer_meshkov_2d.ini COPYO
 configure_file(test_richtmyer_meshkov_3d.ini test_richtmyer_meshkov_3d.ini COPYONLY)
 configure_file(test_two_fluid_shock_tube_2d.ini test_two_fluid_shock_tube_2d.ini COPYONLY)
 # configure_file(test_two_fluid_shock_tube_3d.ini test_two_fluid_shock_tube_3d.ini COPYONLY)
+configure_file(test_two_fluid_shock_tube_2d_alu.ini test_two_fluid_shock_tube_2d_alu.ini COPYONLY)
+configure_file(test_two_fluid_shock_tube_2d_tnt.ini test_two_fluid_shock_tube_2d_tnt.ini COPYONLY)
 configure_file(test_triple_point_2d.ini test_triple_point_2d.ini COPYONLY)
 configure_file(test_shock_bubble_air_r22_2d.ini test_shock_bubble_air_r22_2d.ini COPYONLY)
 configure_file(test_shock_bubble_air_r22_2d_multi.ini test_shock_bubble_air_r22_2d_multi.ini
@@ -66,6 +68,9 @@ configure_file(test_underwater_explosion_3d.ini test_underwater_explosion_3d.ini
 configure_file(test_underwater_explosion_2d_thinc.ini test_underwater_explosion_2d_thinc.ini
                COPYONLY)
 configure_file(test_underwater_explosion_3d_thinc.ini test_underwater_explosion_3d_thinc.ini
+               COPYONLY)
+
+configure_file(test_shock_bubble_molybdenum_MORB_2d.ini test_shock_bubble_molybdenum_MORB_2d.ini
                COPYONLY)
 
 #

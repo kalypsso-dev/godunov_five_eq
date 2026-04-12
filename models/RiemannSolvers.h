@@ -18,7 +18,7 @@
 #include <kalypsso/core/models/riemann_solver_types.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/models/FiveEq.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 namespace kalypsso
 {
@@ -54,10 +54,10 @@ struct RiemannState
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION RiemannState<dim>
-                       riemann_hllc(HydroState<dim> const &           qleft,
-                                    HydroState<dim> const &           qright,
-                                    HydroSettings const &             settings,
-                                    eos::EosWrapper<device_t> const & eos)
+                       riemann_hllc(HydroState<dim> const &        qleft,
+                                    HydroState<dim> const &        qright,
+                                    HydroSettings const &          settings,
+                                    EosWrapper_t<device_t> const & eos)
 {
   RiemannState<dim> riemann_state;
   auto &            flux = riemann_state.flux;
@@ -78,17 +78,20 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
   auto       pl = fmax(qleft[Hydro::IP], rl * smallp);
   const auto ul = qleft[Hydro::IU];
 
-  const auto eintl = eos.mixture_specific_eint(pl, rl, qleft[Hydro::IPHI]);
-  pl = eos.mixture_pressure(rl, eintl, qleft[Hydro::IPHI]);
+  const auto eintl = eos.mixture_specific_eint(
+    rl, pl, qleft[Hydro::IPHI], 1 - qleft[Hydro::IPHI], qleft[Hydro::ID0], qleft[Hydro::ID1]);
+  pl = eos.mixture_pressure(
+    rl, eintl, qleft[Hydro::IPHI], 1 - qleft[Hydro::IPHI], qleft[Hydro::ID0], qleft[Hydro::ID1]);
 
   auto ecinl = HALF_F * rl * ul * ul;
   ecinl += HALF_F * rl * qleft[Hydro::IV] * qleft[Hydro::IV];
   if constexpr (dim == 3)
     ecinl += HALF_F * rl * qleft[Hydro::IW] * qleft[Hydro::IW];
 
-  const auto cl = eos.mixture_sound_speed(pl, rl, qleft[Hydro::IPHI]);
-  auto       etotl = rl * eintl + ecinl;
-  auto       ptotl = pl;
+  const auto cl = eos.mixture_sound_speed(
+    rl, pl, qleft[Hydro::IPHI], 1 - qleft[Hydro::IPHI], qleft[Hydro::ID0], qleft[Hydro::ID1]);
+  auto etotl = rl * eintl + ecinl;
+  auto ptotl = pl;
 
   //
   // Right variables
@@ -97,17 +100,24 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
   auto       pr = fmax(qright[Hydro::IP], rr * smallp);
   const auto ur = qright[Hydro::IU];
 
-  const auto eintr = eos.mixture_specific_eint(pr, rr, qright[Hydro::IPHI]);
-  pr = eos.mixture_pressure(rr, eintr, qright[Hydro::IPHI]);
+  const auto eintr = eos.mixture_specific_eint(
+    rr, pr, qright[Hydro::IPHI], 1 - qright[Hydro::IPHI], qright[Hydro::ID0], qright[Hydro::ID1]);
+  pr = eos.mixture_pressure(rr,
+                            eintr,
+                            qright[Hydro::IPHI],
+                            1 - qright[Hydro::IPHI],
+                            qright[Hydro::ID0],
+                            qright[Hydro::ID1]);
 
   auto ecinr = HALF_F * rr * ur * ur;
   ecinr += HALF_F * rr * qright[Hydro::IV] * qright[Hydro::IV];
   if constexpr (dim == 3)
     ecinr += HALF_F * rr * qright[Hydro::IW] * qright[Hydro::IW];
 
-  const auto cr = eos.mixture_sound_speed(pr, rr, qright[Hydro::IPHI]);
-  auto       etotr = rr * eintr + ecinr;
-  auto       ptotr = pr;
+  const auto cr = eos.mixture_sound_speed(
+    rr, pr, qright[Hydro::IPHI], 1 - qright[Hydro::IPHI], qright[Hydro::ID0], qright[Hydro::ID1]);
+  auto etotr = rr * eintr + ecinr;
+  auto ptotr = pr;
 
   // Find the largest eigenvalues in the normal direction to the interface
   // and compute wave speed
@@ -269,10 +279,10 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION RiemannState<dim>
-                       riemann_hllc_compact(HydroState<dim> const &           qL,
-                                            HydroState<dim> const &           qR,
-                                            HydroSettings const &             settings,
-                                            eos::EosWrapper<device_t> const & eos)
+                       riemann_hllc_compact(HydroState<dim> const &        qL,
+                                            HydroState<dim> const &        qR,
+                                            HydroSettings const &          settings,
+                                            EosWrapper_t<device_t> const & eos)
 {
   RiemannState<dim> riemann_state;
   auto &            flux = riemann_state.flux;
@@ -293,15 +303,18 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
   auto       pL = fmax(qL[Hydro::IP], rL * smallp);
   const auto uL = qL[Hydro::IU];
 
-  const auto eintL = eos.mixture_specific_eint(pL, rL, qL[Hydro::IPHI]);
-  pL = eos.mixture_pressure(rL, eintL, qL[Hydro::IPHI]);
+  const auto eintL = eos.mixture_specific_eint(
+    rL, pL, qL[Hydro::IPHI], 1 - qL[Hydro::IPHI], qL[Hydro::ID0], qL[Hydro::ID1]);
+  pL = eos.mixture_pressure(
+    rL, eintL, qL[Hydro::IPHI], 1 - qL[Hydro::IPHI], qL[Hydro::ID0], qL[Hydro::ID1]);
 
   auto ecinL = HALF_F * rL * uL * uL;
   ecinL += HALF_F * rL * qL[Hydro::IV] * qL[Hydro::IV];
   if constexpr (dim == 3)
     ecinL += HALF_F * rL * qL[Hydro::IW] * qL[Hydro::IW];
 
-  const auto cL = eos.mixture_sound_speed(pL, rL, qL[Hydro::IPHI]);
+  const auto cL = eos.mixture_sound_speed(
+    rL, pL, qL[Hydro::IPHI], 1 - qL[Hydro::IPHI], qL[Hydro::ID0], qL[Hydro::ID1]);
   const auto etotL = rL * eintL + ecinL;
 
   //
@@ -311,15 +324,18 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
   auto       pR = fmax(qR[Hydro::IP], rR * smallp);
   const auto uR = qR[Hydro::IU];
 
-  const auto eintR = eos.mixture_specific_eint(pR, rR, qR[Hydro::IPHI]);
-  pR = eos.mixture_pressure(rR, eintR, qR[Hydro::IPHI]);
+  const auto eintR = eos.mixture_specific_eint(
+    rR, pR, qR[Hydro::IPHI], 1 - qR[Hydro::IPHI], qR[Hydro::ID0], qR[Hydro::ID1]);
+  pR = eos.mixture_pressure(
+    rR, eintR, qR[Hydro::IPHI], 1 - qR[Hydro::IPHI], qR[Hydro::ID0], qR[Hydro::ID1]);
 
   auto ecinR = HALF_F * rR * uR * uR;
   ecinR += HALF_F * rR * qR[Hydro::IV] * qR[Hydro::IV];
   if constexpr (dim == 3)
     ecinR += HALF_F * rR * qR[Hydro::IW] * qR[Hydro::IW];
 
-  const auto cR = eos.mixture_sound_speed(pR, rR, qR[Hydro::IPHI]);
+  const auto cR = eos.mixture_sound_speed(
+    rR, pR, qR[Hydro::IPHI], 1 - qR[Hydro::IPHI], qR[Hydro::ID0], qR[Hydro::ID1]);
   const auto etotR = rR * eintR + ecinR;
 
   // Find the largest eigenvalues in the normal direction to the interface
@@ -455,10 +471,10 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
  */
 template <size_t dim, typename device_t>
 KOKKOS_INLINE_FUNCTION RiemannState<dim>
-                       riemann_hydro(HydroState<dim> const &           qleft,
-                                     HydroState<dim> const &           qright,
-                                     HydroSettings const &             settings,
-                                     eos::EosWrapper<device_t> const & eos)
+                       riemann_hydro(HydroState<dim> const &        qleft,
+                                     HydroState<dim> const &        qright,
+                                     HydroSettings const &          settings,
+                                     EosWrapper_t<device_t> const & eos)
 {
 
   if (settings.riemannSolverType == +RiemannSolverType::HLLC)

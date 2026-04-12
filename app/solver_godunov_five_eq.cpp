@@ -67,12 +67,6 @@ run_simulation(ParallelEnv const &       par_env,
   auto solver =
     godunov_five_eq::SolverGodunovFiveEq<dim, device_t>::create(par_env, params, config_map);
 
-  // some monitoring prints
-  {
-    const auto eos_type = core::eos::get_eos_type(config_map);
-    KALYPSSO_INFO("EOS type : {}", eos_type._to_string());
-  }
-
   // diagnostics
   const auto conservativity_check_enabled =
     config_map.getBool("diagnostic", "conservativity_checks", true);

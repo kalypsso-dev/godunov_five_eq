@@ -33,7 +33,7 @@
 #include <kalypsso/utils/monitoring/ProfilingManager.h>
 
 // Equation of state
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 // godunov implementation details
 #include <godunov_five_eq/scheme/GodunovImplemBase.h>
@@ -215,7 +215,7 @@ public:
   //! Equation of state parameters.
   //!
   //! make sure to return by copy (to ease use in device code)
-  eos::EosWrapper<device_t>
+  EosWrapper_t<device_t>
   eos() const
   {
     return m_eos;
@@ -307,7 +307,7 @@ private:
   const HydroSettings m_hydro_settings;
 
   //! Equation of state wrapper
-  eos::EosWrapper<device_t> m_eos;
+  EosWrapper_t<device_t> m_eos;
 
   //! The main AMR object
   std::shared_ptr<AMRmesh<dim>> m_amr_mesh;

@@ -16,7 +16,7 @@
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/models/utils.h>
-#include <godunov_five_eq/eos/EosWrapper.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 namespace kalypsso
 {
@@ -94,7 +94,7 @@ struct ComputeDerivedQuantities
       FieldMap<models::FiveEq>             fm,
       DERIVED_QUANTITY                     quantity,
       HydroSettings                        hydro_settings,
-      eos::EosWrapper<device_t>            eos,
+      EosWrapper_t<device_t>               eos,
       int64_t                              iOct_begin,
       int64_t                              num_octs,
       [[maybe_unused]] ParallelEnv const & par_env)
@@ -173,14 +173,14 @@ struct ComputeDerivedQuantities
   // ==========================================================================
   // ==========================================================================
   static DataArrayBlock_t
-  run(DataArrayBlock_t          Udata,
-      FieldMap<models::FiveEq>  fm,
-      std::string               quantity,
-      HydroSettings             hydro_settings,
-      eos::EosWrapper<device_t> eos,
-      int64_t                   iOct_begin,
-      int64_t                   num_octs,
-      ParallelEnv const &       par_env)
+  run(DataArrayBlock_t         Udata,
+      FieldMap<models::FiveEq> fm,
+      std::string              quantity,
+      HydroSettings            hydro_settings,
+      EosWrapper_t<device_t>   eos,
+      int64_t                  iOct_begin,
+      int64_t                  num_octs,
+      ParallelEnv const &      par_env)
   {
     if (quantity == "rho_mix")
     {
