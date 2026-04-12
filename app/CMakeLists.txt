@@ -70,6 +70,9 @@ configure_file(test_underwater_explosion_2d_thinc.ini test_underwater_explosion_
 configure_file(test_underwater_explosion_3d_thinc.ini test_underwater_explosion_3d_thinc.ini
                COPYONLY)
 
+configure_file(test_shock_bubble_molybdenum_MORB_2d.ini
+               test_shock_bubble_molybdenum_MORB_2d.ini COPYONLY)
+
 #
 # Gas-Water shock tube
 #
