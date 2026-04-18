@@ -81,7 +81,7 @@ ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(ConfigMap const &       
   // Important note: the caller is responsible for providing a flux array with the right shape.
   {
     [[maybe_unused]] auto flux_block_sizes = q_ghosted.block_size();
-    flux_block_sizes[direction]++;
+    flux_block_sizes[static_cast<size_t>(direction)]++;
     assertm(flux_block_sizes == fluxes.shape(), "Flux array has incompatible shape.");
   }
 
