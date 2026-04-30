@@ -61,6 +61,10 @@ configure_file(test_static_droplet_2d.ini test_static_droplet_2d.ini COPYONLY)
 
 configure_file(test_shock_bubble_air_r22_2d_thinc.ini test_shock_bubble_air_r22_2d_thinc.ini
                COPYONLY)
+
+configure_file(test_spherical_implosion_2d_tin_air.ini test_spherical_implosion_2d_tin_air.ini
+               COPYONLY)
+
 configure_file(test_triple_point_2d_thinc.ini test_triple_point_2d_thinc.ini COPYONLY)
 
 configure_file(test_underwater_explosion_2d.ini test_underwater_explosion_2d.ini COPYONLY)
