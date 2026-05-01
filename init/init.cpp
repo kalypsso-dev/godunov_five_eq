@@ -12,6 +12,7 @@
 #include <godunov_five_eq/init/InitDropletAdvection.h>
 #include <godunov_five_eq/init/InitRichtmyerMeshkov.h>
 #include <godunov_five_eq/init/InitShockBubble.h>
+#include <godunov_five_eq/init/InitSphericalImplosion.h>
 #include <godunov_five_eq/init/InitStaticDroplet.h>
 #include <godunov_five_eq/init/InitTriplePoint.h>
 #include <godunov_five_eq/init/InitTwoFluidShockTube.h>
@@ -59,6 +60,10 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     else if (!problem_name.compare("shock_bubble"))
     {
       InitShockBubble<dim, device_t>::apply(solver);
+    }
+    else if (!problem_name.compare("spherical_implosion"))
+    {
+      InitSphericalImplosion<dim, device_t>::apply(solver);
     }
     else if (!problem_name.compare("static_droplet"))
     {

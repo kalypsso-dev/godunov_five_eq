@@ -168,6 +168,25 @@ get_initial_states(ConfigMap const & config_map, int nb_regions) -> InitialState
   return initial_states;
 }
 
+/**
+ * Compute volumic kinetic energy from state of conservative variable.
+ */
+template <size_t dim>
+KOKKOS_INLINE_FUNCTION real_t
+ekin_from_conservative_var_state(HydroState<dim> const & state)
+{
+  using Hydro = models::FiveEq;
+
+  real_t density = state[Hydro::ID0] + state[Hydro::ID1];
+  real_t ekin = state[Hydro::IU] * state[Hydro::IU] + state[Hydro::IV] * state[Hydro::IV];
+  if constexpr (dim == 3)
+  {
+    ekin += state[Hydro::IW] * state[Hydro::IW];
+  }
+
+  return HALF_F * ekin / density;
+}
+
 } // namespace godunov_five_eq
 
 } // namespace kalypsso

@@ -16,6 +16,8 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/InitRichtmyerMeshkov.h
     init/InitShockBubble.cpp
     init/InitShockBubble.h
+    init/InitSphericalImplosion.cpp
+    init/InitSphericalImplosion.h
     init/InitTriplePoint.cpp
     init/InitTriplePoint.h
     init/InitTwoFluidShockTube.cpp
