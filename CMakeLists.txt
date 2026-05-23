@@ -33,8 +33,8 @@ set(GODUNOV_FIVE_EQ_SRCS
     scheme/ComputeDtFiveEqFunctor.h
     scheme/ComputeFluxesAndStoreFunctor.cpp
     scheme/ComputeFluxesAndStoreFunctor.h
-    #scheme/ComputeFluxesAndStoreTHINCFunctor.cpp
-    #scheme/ComputeFluxesAndStoreTHINCFunctor.h
+    scheme/ComputeFluxesAndStoreTHINCFunctor.cpp
+    scheme/ComputeFluxesAndStoreTHINCFunctor.h
     scheme/ComputeLimitedSlopesFunctor.cpp
     scheme/ComputeLimitedSlopesFunctor.h
     scheme/ComputeRefineFlags.cpp

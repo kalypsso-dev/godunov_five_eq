@@ -13,7 +13,7 @@
 #include <godunov_five_eq/scheme/ConvertToPrimitivesVariablesFunctor.h>
 #include <godunov_five_eq/scheme/ComputeLimitedSlopesFunctor.h>
 #include <godunov_five_eq/scheme/ComputeFluxesAndStoreFunctor.h>
-// #include <godunov_five_eq/scheme/ComputeFluxesAndStoreTHINCFunctor.h>
+#include <godunov_five_eq/scheme/ComputeFluxesAndStoreTHINCFunctor.h>
 #include <godunov_five_eq/scheme/FixVolumeFractionsNormalization.h>
 #include <godunov_five_eq/scheme/ReadFluxesAndConservativeUpdateFunctor.h>
 // #include <godunov_five_eq/scheme/AddGravitySourceTerm.h>
@@ -286,21 +286,22 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
   // compute fluxes and update all quadrants in a group of quadrants
   if (this->m_thinc_params.enabled)
   {
-    // ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(this->m_config_map,
-    //                                                         this->m_mesh_map.orchard_keys(),
-    //                                                         this->m_mesh_map.get_amr_mesh_info(),
-    //                                                         m_Fluxes,m_u_star,
-    //                                                         m_Q_ghosted,
-    //                                                         m_Slopes_x,
-    //                                                         m_Slopes_y,
-    //                                                         m_Slopes_z,
-    //                                                         0,
-    //                                                         num_quadrants_owned +
-    //                                                           num_quadrants_ghost,
-    //                                                         direction,
-    //                                                         this->m_hydro_settings,
-    //                                                         this->m_eos,
-    //                                                         dt);
+    ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(this->m_config_map,
+                                                            this->m_mesh_map.orchard_keys(),
+                                                            this->m_mesh_map.get_amr_mesh_info(),
+                                                            m_Fluxes,
+                                                            m_u_star,
+                                                            m_Q_ghosted,
+                                                            m_Slopes_x,
+                                                            m_Slopes_y,
+                                                            m_Slopes_z,
+                                                            0,
+                                                            num_quadrants_owned +
+                                                              num_quadrants_ghost,
+                                                            direction,
+                                                            this->m_hydro_settings,
+                                                            this->m_eos,
+                                                            dt);
   }
   else
   {
