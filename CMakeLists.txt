@@ -10,20 +10,20 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/init.h
     init/InitDropletAdvection.cpp
     init/InitDropletAdvection.h
-    # init/InitStaticDroplet.cpp
-    # init/InitStaticDroplet.h
-     init/InitRichtmyerMeshkov.cpp
-     init/InitRichtmyerMeshkov.h
+    init/InitStaticDroplet.cpp
+    init/InitStaticDroplet.h
+    init/InitRichtmyerMeshkov.cpp
+    init/InitRichtmyerMeshkov.h
     init/InitShockBubble.cpp
     init/InitShockBubble.h
-    # init/InitSphericalImplosion.cpp
-    # init/InitSphericalImplosion.h
-    # init/InitTriplePoint.cpp
-    # init/InitTriplePoint.h
+    init/InitSphericalImplosion.cpp
+    init/InitSphericalImplosion.h
+    init/InitTriplePoint.cpp
+    init/InitTriplePoint.h
     init/InitTwoFluidShockTube.cpp
     init/InitTwoFluidShockTube.h
-    # init/InitUnderwaterExplosion.cpp
-    # init/InitUnderwaterExplosion.h
+    init/InitUnderwaterExplosion.cpp
+    init/InitUnderwaterExplosion.h
     models/FiveEq.h
     models/HydroState.h
     models/RiemannSolvers.h

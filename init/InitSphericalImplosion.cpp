@@ -23,16 +23,15 @@ namespace godunov_five_eq
 template <size_t dim, typename device_t>
 void
 InitSphericalImplosionDataFunctor<dim, device_t>::apply(
-  DataArrayBlock_t                     Udata,
-  FieldMap<models::FiveEq>             fm,
-  orchard_key_view_t<device_t>         orchard_keys,
+  DataArrayBlock_t const &             Udata,
+  orchard_key_view_t<device_t> const & orchard_keys,
   int32_t                              local_num_octants,
   InitialStates<dim, device_t> const & initial_states,
   ConfigMap const &                    config_map)
 {
   // data init functor
   InitSphericalImplosionDataFunctor functor(
-    Udata, fm, orchard_keys, local_num_octants, initial_states, config_map);
+    Udata, orchard_keys, local_num_octants, initial_states, config_map);
 
   // compute total number of cells
   const auto nbCellsPerLeaf = Udata.num_cells();
@@ -53,14 +52,15 @@ KOKKOS_INLINE_FUNCTION HydroState<dim>
   real_t                             v_theta) const
 {
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   HydroState<dim> initial_state1;
 
-  initial_state1[Hydro::ID0] = m_initial_states(1)[Hydro::ID0];
-  initial_state1[Hydro::ID1] = m_initial_states(1)[Hydro::ID1];
-  auto rho1 = initial_state1[Hydro::ID0] + initial_state1[Hydro::ID1];
-  initial_state1[Hydro::IPHI] = m_initial_states(1)[Hydro::IPHI];
+  initial_state1[Hydro::IAD0] = m_initial_states(1)[Hydro::IAD0];
+  initial_state1[Hydro::IAD1] = m_initial_states(1)[Hydro::IAD1];
+  initial_state1[Hydro::ID] = initial_state1[Hydro::IAD0] + initial_state1[Hydro::IAD1];
+  initial_state1[Hydro::IA0] = m_initial_states(1)[Hydro::IA0];
+  initial_state1[Hydro::IA1] = m_initial_states(1)[Hydro::IA1];
 
   initial_state1[Hydro::IU] = m_initial_states(1)[Hydro::IU] + normal[IX] * v_theta;
   initial_state1[Hydro::IV] = m_initial_states(1)[Hydro::IV] + normal[IY] * v_theta;
@@ -75,7 +75,7 @@ KOKKOS_INLINE_FUNCTION HydroState<dim>
   {
     ekin_old += m_initial_states(1)[Hydro::IW] * m_initial_states(1)[Hydro::IW];
   }
-  ekin_old = HALF_F * ekin_old / rho1;
+  ekin_old = HALF_F * ekin_old / initial_state1[Hydro::ID];
 
   auto ekin_new = initial_state1[Hydro::IU] * initial_state1[Hydro::IU];
   ekin_new += initial_state1[Hydro::IV] * initial_state1[Hydro::IV];
@@ -83,7 +83,7 @@ KOKKOS_INLINE_FUNCTION HydroState<dim>
   {
     ekin_new += initial_state1[Hydro::IW] * initial_state1[Hydro::IW];
   }
-  ekin_new = HALF_F * ekin_new / rho1;
+  ekin_new = HALF_F * ekin_new / initial_state1[Hydro::ID];
 
   initial_state1[Hydro::IE] = m_initial_states(1)[Hydro::IE] - ekin_old + ekin_new;
 
@@ -105,7 +105,7 @@ InitSphericalImplosionDataFunctor<dim, device_t>::operator()(const int32_t & glo
   const auto cell_index = global_index - iOct * m_Udata.num_cells();
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   const auto & block_sizes = m_Udata.block_size();
 
@@ -180,14 +180,17 @@ InitSphericalImplosionDataFunctor<dim, device_t>::operator()(const int32_t & glo
   // clang-format on
 
   // Fill with the outer region state
-  m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = initial_state[Hydro::ID0];
-  m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = initial_state[Hydro::ID1];
-  m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = initial_state[Hydro::IPHI];
-  m_Udata(cell_index, m_fm[Hydro::IU], iOct) = initial_state[Hydro::IU];
-  m_Udata(cell_index, m_fm[Hydro::IV], iOct) = initial_state[Hydro::IV];
+  m_Udata(cell_index, Hydro::IAD0, iOct) = initial_state[Hydro::IAD0];
+  m_Udata(cell_index, Hydro::IAD1, iOct) = initial_state[Hydro::IAD1];
+  m_Udata(cell_index, Hydro::ID, iOct) =
+    m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
+  m_Udata(cell_index, Hydro::IA0, iOct) = initial_state[Hydro::IA0];
+  m_Udata(cell_index, Hydro::IA1, iOct) = initial_state[Hydro::IA1];
+  m_Udata(cell_index, Hydro::IU, iOct) = initial_state[Hydro::IU];
+  m_Udata(cell_index, Hydro::IV, iOct) = initial_state[Hydro::IV];
   if constexpr (dim == 3)
   {
-    m_Udata(cell_index, m_fm[Hydro::IW], iOct) = initial_state[Hydro::IW];
+    m_Udata(cell_index, Hydro::IW, iOct) = initial_state[Hydro::IW];
   }
 
   const auto ekin0 = ekin_from_conservative_var_state<dim>(initial_state0);
@@ -200,7 +203,7 @@ InitSphericalImplosionDataFunctor<dim, device_t>::operator()(const int32_t & glo
                           phi1 * (initial_state1[Hydro::IE] - ekin1) +
                           phi2 * (initial_state2[Hydro::IE] - ekin2);
 
-  m_Udata(cell_index, m_fm[Hydro::IE], iOct) = eint_mixed + ekin_mixed;
+  m_Udata(cell_index, Hydro::IE, iOct) = eint_mixed + ekin_mixed;
 
 } // InitSphericalImplosionDataFunctor::operator ()
 
@@ -211,17 +214,17 @@ template class InitSphericalImplosionDataFunctor<3, kalypsso::DefaultDevice>;
 // =======================================================
 template <size_t dim, typename device_t>
 void
-InitSphericalImplosionRefineFunctor<dim, device_t>::apply(DataArrayBlock_t             Udata,
-                                                          FieldMap<models::FiveEq>     fm,
-                                                          orchard_key_view_t<device_t> orchard_keys,
-                                                          amrflags_view_t              amrflags,
-                                                          int32_t           local_num_octants,
-                                                          int               level_refine,
-                                                          ConfigMap const & config_map)
+InitSphericalImplosionRefineFunctor<dim, device_t>::apply(
+  DataArrayBlock_t const &             Udata,
+  orchard_key_view_t<device_t> const & orchard_keys,
+  amrflags_view_t const &              amrflags,
+  int32_t                              local_num_octants,
+  int                                  level_refine,
+  ConfigMap const &                    config_map)
 {
   // iterate functor for refinement
   InitSphericalImplosionRefineFunctor functor(
-    Udata, fm, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
+    Udata, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
 
   const auto refine_type = core::get_init_indicator(config_map);
 
@@ -339,7 +342,6 @@ InitSphericalImplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> 
 
   // first init of Udata
   InitSphericalImplosionDataFunctor<dim, device_t>::apply(solver.U(),
-                                                          solver.model().get_fieldmap(),
                                                           solver.mesh_map()->orchard_keys(),
                                                           solver.amr_mesh()->local_num_quadrants(),
                                                           initial_states,
@@ -364,7 +366,6 @@ InitSphericalImplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> 
       //
       InitSphericalImplosionDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,
@@ -393,7 +394,6 @@ InitSphericalImplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> 
       //
       InitSphericalImplosionRefineFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         flags_d,
         solver.amr_mesh()->local_num_quadrants(),
@@ -426,7 +426,6 @@ InitSphericalImplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> 
       //
       InitSphericalImplosionDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,
