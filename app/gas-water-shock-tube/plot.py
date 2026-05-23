@@ -42,48 +42,48 @@ def do_plot(ini_filename1, ini_filename2, shock_tube_name):
 
     # load numerical solution
     pos1 = np.load(prefix1+'_positions.npy')
-    rho1_0 = np.load(prefix1+'_rho0.npy')
-    rho1_1 = np.load(prefix1+'_rho1.npy')
+    rho1_0 = np.load(prefix1+'_alpha_rho_0.npy')
+    rho1_1 = np.load(prefix1+'_alpha_rho_1.npy')
     rho1 = rho1_0+rho1_1
-    etot1 = np.load(prefix1+'_etot.npy')
-    phi1 = np.load(prefix1+'_phi.npy')
-    rhou1 = np.load(prefix1+'_rhou.npy')
+    etot1 = np.load(prefix1+'_e_tot.npy')
+    alpha_0_1 = np.load(prefix1+'_alpha_0.npy')
+    rho_vx1 = np.load(prefix1+'_rho_vx.npy')
     level1 = np.load(prefix1+'_level.npy')
-    eint1 = etot1 / rho1 - 0.5 * rhou1**2 / rho1**2
-    #P1 = compute_pressure(rho1, eint1, phi1)
+    eint1 = etot1 / rho1 - 0.5 * rho_vx1**2 / rho1**2
+    #P1 = compute_pressure(rho1, eint1, alpha_0_1)
     P1 = np.load(prefix1+'_pressure.npy')
     c1 = np.load(prefix1+'_speed_of_sound.npy')
 
     pos2 = np.load(prefix2+'_positions.npy')
-    rho2_0 = np.load(prefix2+'_rho0.npy')
-    rho2_1 = np.load(prefix2+'_rho1.npy')
+    rho2_0 = np.load(prefix2+'_alpha_rho_0.npy')
+    rho2_1 = np.load(prefix2+'_alpha_rho_1.npy')
     rho2 = rho2_0+rho2_1
-    etot2 = np.load(prefix2+'_etot.npy')
-    phi2 = np.load(prefix2+'_phi.npy')
-    rhou2 = np.load(prefix2+'_rhou.npy')
+    etot2 = np.load(prefix2+'_e_tot.npy')
+    alpha_0_2 = np.load(prefix2+'_alpha_0.npy')
+    rho_vx2 = np.load(prefix2+'_rho_vx.npy')
     level2 = np.load(prefix2+'_level.npy')
-    eint2 = etot2 / rho2 - 0.5 * rhou2**2 / rho2**2
-    #P2 = compute_pressure(rho2, eint2, phi2)
+    eint2 = etot2 / rho2 - 0.5 * rho_vx2**2 / rho2**2
+    #P2 = compute_pressure(rho2, eint2, alpha_0_2)
     P2 = np.load(prefix2+'_pressure.npy')
     c2 = np.load(prefix2+'_speed_of_sound.npy')
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4, ncols=1, figsize=(11,13))
 
-    ax1.plot(pos1, phi1, 'r-', label='phi')
+    ax1.plot(pos1, alpha_0_1, 'r-', label='alpha_0')
     ax2.plot(pos1, rho1, 'g-', label='rho')
     ax3.plot(pos1, P1, 'b-', label='pressure')
     #ax3.plot(pos1, c1, 'b-', label='speed of sound')
     #ax3.semilogy(pos1, P1, 'b-', label='pressure')
     ax4.plot(pos1, level1, 'k-', label='AMR levels')
-    #ax4.plot(pos1, rhou1, 'k-', label='rho_u')
+    #ax4.plot(pos1, rho_vx1, 'k-', label='rho_u')
 
-    ax1.plot(pos2, phi2, 'r--', label='phi thinc')
+    ax1.plot(pos2, alpha_0_2, 'r--', label='alpha_0 thinc')
     ax2.plot(pos2, rho2, 'g--', label='rho thinc')
     ax3.plot(pos2, P2, 'b--', label='pressure thinc')
     #ax3.plot(pos2, c2, 'b--', label='speed of sound thinc')
     #ax3.semilogy(pos2, P2, 'b--', label='pressure thinc')
-    ax4.plot(pos2, level2, 'k-', label='AMR levels thinc')
-    #ax4.plot(pos2, rhou2, 'k--', label='rho_u thinc')
+    ax4.plot(pos2, level2, 'k--', label='AMR levels thinc')
+    #ax4.plot(pos2, rho_vx2, 'k--', label='rho_u thinc')
 
     tsize=14
     ax1.tick_params(labelsize=tsize)

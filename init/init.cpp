@@ -9,13 +9,13 @@
 
 #include <godunov_five_eq/SolverGodunovFiveEq.h>
 
-// #include <godunov_five_eq/init/InitDropletAdvection.h>
-// #include <godunov_five_eq/init/InitRichtmyerMeshkov.h>
+#include <godunov_five_eq/init/InitDropletAdvection.h>
+#include <godunov_five_eq/init/InitRichtmyerMeshkov.h>
 #include <godunov_five_eq/init/InitShockBubble.h>
 // #include <godunov_five_eq/init/InitSphericalImplosion.h>
 // #include <godunov_five_eq/init/InitStaticDroplet.h>
 // #include <godunov_five_eq/init/InitTriplePoint.h>
-// #include <godunov_five_eq/init/InitTwoFluidShockTube.h>
+#include <godunov_five_eq/init/InitTwoFluidShockTube.h>
 // #include <godunov_five_eq/init/InitUnderwaterExplosion.h>
 
 #include <kalypsso/core/io_utils.h>
@@ -49,16 +49,15 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
 
     const auto problem_name = solver.problem_name();
 
-    // if (!problem_name.compare("droplet_advection"))
-    // {
-    //   InitDropletAdvection<dim, device_t>::apply(solver);
-    // }
-    // else if (!problem_name.compare("richtmyer_meshkov"))
-    // {
-    //   InitRichtmyerMeshkov<dim, device_t>::apply(solver);
-    // }
-    // else
-    if (!problem_name.compare("shock_bubble"))
+    if (!problem_name.compare("droplet_advection"))
+    {
+      InitDropletAdvection<dim, device_t>::apply(solver);
+    }
+    else if (!problem_name.compare("richtmyer_meshkov"))
+    {
+      InitRichtmyerMeshkov<dim, device_t>::apply(solver);
+    }
+    else if (!problem_name.compare("shock_bubble"))
     {
       InitShockBubble<dim, device_t>::apply(solver);
     }
@@ -74,10 +73,10 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     // {
     //   InitTriplePoint<dim, device_t>::apply(solver);
     // }
-    // else if (!problem_name.compare("two_fluid_shock_tube"))
-    // {
-    //   InitTwoFluidShockTube<dim, device_t>::apply(solver);
-    // }
+    else if (!problem_name.compare("two_fluid_shock_tube"))
+    {
+      InitTwoFluidShockTube<dim, device_t>::apply(solver);
+    }
     // else if (!problem_name.compare("underwater_explosion"))
     // {
     //   InitUnderwaterExplosion<dim, device_t>::apply(solver);

@@ -23,7 +23,6 @@ template <size_t dim, typename device_t>
 void
 InitRichtmyerMeshkovDataFunctor<dim, device_t>::apply(
   DataArrayBlock_t const &             Udata,
-  FieldMap<models::FiveEq>             fm,
   orchard_key_view_t<device_t> const & orchard_keys,
   int32_t                              local_num_octants,
   InitialStates<dim, device_t> const & initial_states,
@@ -31,7 +30,7 @@ InitRichtmyerMeshkovDataFunctor<dim, device_t>::apply(
 {
   // data init functor
   InitRichtmyerMeshkovDataFunctor functor(
-    Udata, fm, orchard_keys, local_num_octants, initial_states, config_map);
+    Udata, orchard_keys, local_num_octants, initial_states, config_map);
 
   // compute total number of cells
   const auto nbCellsPerLeaf = Udata.num_cells();
@@ -57,7 +56,7 @@ InitRichtmyerMeshkovDataFunctor<dim, device_t>::operator()(const int32_t & globa
   const auto cell_index = global_index - iOct * m_Udata.num_cells();
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   const auto & block_sizes = m_Udata.block_size();
 
@@ -93,14 +92,18 @@ InitRichtmyerMeshkovDataFunctor<dim, device_t>::operator()(const int32_t & globa
 
   if (init_as_pure_cell)
   {
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(region_id)[Hydro::IPHI];
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(region_id)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(region_id)[Hydro::ID1];
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(region_id)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(region_id)[Hydro::IV];
+    m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(region_id)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) = m_initial_states(region_id)[Hydro::IA1];
+    m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(region_id)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(region_id)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
+
+    m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(region_id)[Hydro::IU];
+    m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(region_id)[Hydro::IV];
     if constexpr (dim == 3)
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(region_id)[Hydro::IW];
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(region_id)[Hydro::IE];
+      m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(region_id)[Hydro::IW];
+    m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(region_id)[Hydro::IE];
   }
   else
   {
@@ -115,21 +118,26 @@ InitRichtmyerMeshkovDataFunctor<dim, device_t>::operator()(const int32_t & globa
     const auto vf =
       vof::compute_volume_fraction_of_rect_below_plane(normal, alpha, xyz - dx / 2, xyz + dx / 2);
 
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) =
-      vf * m_initial_states(1)[Hydro::IPHI] + (ONE_F - vf) * m_initial_states(2)[Hydro::IPHI];
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) =
-      vf * m_initial_states(1)[Hydro::ID0] + (ONE_F - vf) * m_initial_states(2)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) =
-      vf * m_initial_states(1)[Hydro::ID1] + (ONE_F - vf) * m_initial_states(2)[Hydro::ID1];
+    m_Udata(cell_index, Hydro::IA0, iOct) =
+      vf * m_initial_states(1)[Hydro::IA0] + (ONE_F - vf) * m_initial_states(2)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) =
+      vf * m_initial_states(1)[Hydro::IA1] + (ONE_F - vf) * m_initial_states(2)[Hydro::IA1];
 
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) =
+    m_Udata(cell_index, Hydro::IAD0, iOct) =
+      vf * m_initial_states(1)[Hydro::IAD0] + (ONE_F - vf) * m_initial_states(2)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) =
+      vf * m_initial_states(1)[Hydro::IAD1] + (ONE_F - vf) * m_initial_states(2)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
+
+    m_Udata(cell_index, Hydro::IU, iOct) =
       vf * m_initial_states(1)[Hydro::IU] + (ONE_F - vf) * m_initial_states(2)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) =
+    m_Udata(cell_index, Hydro::IV, iOct) =
       vf * m_initial_states(1)[Hydro::IV] + (ONE_F - vf) * m_initial_states(2)[Hydro::IV];
 
     if constexpr (dim == 3)
     {
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) =
+      m_Udata(cell_index, Hydro::IW, iOct) =
         vf * m_initial_states(1)[Hydro::IW] + (ONE_F - vf) * m_initial_states(2)[Hydro::IW];
     }
 
@@ -147,19 +155,16 @@ InitRichtmyerMeshkovDataFunctor<dim, device_t>::operator()(const int32_t & globa
       eint[i] = m_initial_states(i)[Hydro::IE] - ekin;
     }
 
-    real_t rho_mixed =
-      m_Udata(cell_index, m_fm[Hydro::ID0], iOct) + m_Udata(cell_index, m_fm[Hydro::ID1], iOct);
-    auto ekin_mixed =
-      m_Udata(cell_index, m_fm[Hydro::IU], iOct) * m_Udata(cell_index, m_fm[Hydro::IU], iOct) +
-      m_Udata(cell_index, m_fm[Hydro::IV], iOct) * m_Udata(cell_index, m_fm[Hydro::IV], iOct);
+    real_t rho_mixed = m_Udata(cell_index, Hydro::ID, iOct);
+    auto ekin_mixed = m_Udata(cell_index, Hydro::IU, iOct) * m_Udata(cell_index, Hydro::IU, iOct) +
+                      m_Udata(cell_index, Hydro::IV, iOct) * m_Udata(cell_index, Hydro::IV, iOct);
     if constexpr (dim == 3)
-      ekin_mixed +=
-        m_Udata(cell_index, m_fm[Hydro::IW], iOct) * m_Udata(cell_index, m_fm[Hydro::IW], iOct);
+      ekin_mixed += m_Udata(cell_index, Hydro::IW, iOct) * m_Udata(cell_index, Hydro::IW, iOct);
     ekin_mixed /= (TWO_F * rho_mixed);
 
     const auto eint_mixed = vf * eint[1] + (ONE_F - vf) * eint[2];
 
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = eint_mixed + ekin_mixed;
+    m_Udata(cell_index, Hydro::IE, iOct) = eint_mixed + ekin_mixed;
   }
 
 } // InitRichtmyerMeshkovDataFunctor::operator ()
@@ -173,7 +178,6 @@ template <size_t dim, typename device_t>
 void
 InitRichtmyerMeshkovRefineFunctor<dim, device_t>::apply(
   DataArrayBlock_t const &             Udata,
-  FieldMap<models::FiveEq>             fm,
   orchard_key_view_t<device_t> const & orchard_keys,
   amrflags_view_t const &              amrflags,
   int32_t                              local_num_octants,
@@ -182,7 +186,7 @@ InitRichtmyerMeshkovRefineFunctor<dim, device_t>::apply(
 {
   // iterate functor for refinement
   InitRichtmyerMeshkovRefineFunctor functor(
-    Udata, fm, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
+    Udata, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
 
   const auto refine_type = core::get_init_indicator(config_map);
 
@@ -290,7 +294,6 @@ InitRichtmyerMeshkov<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & 
 
   // first init of Udata
   InitRichtmyerMeshkovDataFunctor<dim, device_t>::apply(solver.U(),
-                                                        solver.model().get_fieldmap(),
                                                         solver.mesh_map()->orchard_keys(),
                                                         solver.amr_mesh()->local_num_quadrants(),
                                                         initial_states,
@@ -315,7 +318,6 @@ InitRichtmyerMeshkov<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & 
       //
       InitRichtmyerMeshkovDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,
@@ -344,7 +346,6 @@ InitRichtmyerMeshkov<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & 
       //
       InitRichtmyerMeshkovRefineFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         flags_d,
         solver.amr_mesh()->local_num_quadrants(),
@@ -377,7 +378,6 @@ InitRichtmyerMeshkov<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & 
       //
       InitRichtmyerMeshkovDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,

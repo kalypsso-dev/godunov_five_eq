@@ -22,7 +22,6 @@ template <size_t dim, typename device_t>
 void
 InitTwoFluidShockTubeDataFunctor<dim, device_t>::apply(
   DataArrayBlock_t const &             Udata,
-  FieldMap<models::FiveEq>             fm,
   orchard_key_view_t<device_t> const & orchard_keys,
   int32_t                              local_num_octants,
   InitialStates<dim, device_t> const & initial_states,
@@ -30,7 +29,7 @@ InitTwoFluidShockTubeDataFunctor<dim, device_t>::apply(
 {
   // data init functor
   InitTwoFluidShockTubeDataFunctor functor(
-    Udata, fm, orchard_keys, local_num_octants, initial_states, config_map);
+    Udata, orchard_keys, local_num_octants, initial_states, config_map);
 
   // compute total number of cells
   const auto nbCellsPerLeaf = Udata.num_cells();
@@ -56,7 +55,7 @@ InitTwoFluidShockTubeDataFunctor<dim, device_t>::operator()(const int32_t & glob
   const auto cell_index = global_index - iOct * m_Udata.num_cells();
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   const auto & block_sizes = m_Udata.block_size();
 
@@ -75,18 +74,21 @@ InitTwoFluidShockTubeDataFunctor<dim, device_t>::operator()(const int32_t & glob
 
   const int region_id = xyz[IX] < discontinuity_pos ? 0 : 1;
 
-  m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(region_id)[Hydro::IPHI];
+  m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(region_id)[Hydro::IA0];
+  m_Udata(cell_index, Hydro::IA1, iOct) = ONE_F - m_initial_states(region_id)[Hydro::IA0];
 
-  m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(region_id)[Hydro::ID0];
-  m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(region_id)[Hydro::ID1];
+  m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(region_id)[Hydro::IAD0];
+  m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(region_id)[Hydro::IAD1];
+  m_Udata(cell_index, Hydro::ID, iOct) =
+    m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-  m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(region_id)[Hydro::IE];
-  m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(region_id)[Hydro::IU];
+  m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(region_id)[Hydro::IE];
+  m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(region_id)[Hydro::IU];
 
-  m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(region_id)[Hydro::IV];
+  m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(region_id)[Hydro::IV];
 
   if constexpr (dim == 3)
-    m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(region_id)[Hydro::IW];
+    m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(region_id)[Hydro::IW];
 
 } // InitTwoFluidShockTubeDataFunctor::operator ()
 
@@ -97,17 +99,17 @@ template class InitTwoFluidShockTubeDataFunctor<3, kalypsso::DefaultDevice>;
 // ==================================================================================
 template <size_t dim, typename device_t>
 void
-InitTwoFluidShockTubeRefineFunctor<dim, device_t>::apply(DataArrayBlock_t             Udata,
-                                                         FieldMap<models::FiveEq>     fm,
-                                                         orchard_key_view_t<device_t> orchard_keys,
-                                                         amrflags_view_t              amrflags,
-                                                         int32_t           local_num_octants,
-                                                         int               level_refine,
-                                                         ConfigMap const & config_map)
+InitTwoFluidShockTubeRefineFunctor<dim, device_t>::apply(
+  DataArrayBlock_t const &             Udata,
+  orchard_key_view_t<device_t> const & orchard_keys,
+  amrflags_view_t const &              amrflags,
+  int32_t                              local_num_octants,
+  int                                  level_refine,
+  ConfigMap const &                    config_map)
 {
   // iterate functor for refinement
   InitTwoFluidShockTubeRefineFunctor functor(
-    Udata, fm, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
+    Udata, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
 
   const auto refine_type = core::get_init_indicator(config_map);
 
@@ -211,7 +213,6 @@ InitTwoFluidShockTube<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> &
 
   // first init of Udata
   InitTwoFluidShockTubeDataFunctor<dim, device_t>::apply(solver.U(),
-                                                         solver.model().get_fieldmap(),
                                                          solver.mesh_map()->orchard_keys(),
                                                          solver.amr_mesh()->local_num_quadrants(),
                                                          initial_states,
@@ -236,7 +237,6 @@ InitTwoFluidShockTube<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> &
       //
       InitTwoFluidShockTubeDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,
@@ -265,7 +265,6 @@ InitTwoFluidShockTube<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> &
       //
       InitTwoFluidShockTubeRefineFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         flags_d,
         solver.amr_mesh()->local_num_quadrants(),
@@ -298,7 +297,6 @@ InitTwoFluidShockTube<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> &
       //
       InitTwoFluidShockTubeDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,

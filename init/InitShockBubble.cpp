@@ -91,6 +91,7 @@ InitShockBubbleDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
     m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(0)[Hydro::IAD1];
     m_Udata(cell_index, Hydro::ID, iOct) =
       m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
+
     m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(0)[Hydro::IA0];
     m_Udata(cell_index, Hydro::IA1, iOct) = ONE_F - m_Udata(cell_index, Hydro::IA0, iOct);
 
@@ -109,6 +110,7 @@ InitShockBubbleDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
     m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(1)[Hydro::IAD1];
     m_Udata(cell_index, Hydro::ID, iOct) =
       m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
+
     m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(1)[Hydro::IA0];
     m_Udata(cell_index, Hydro::IA1, iOct) = ONE_F - m_Udata(cell_index, Hydro::IA0, iOct);
 
