@@ -90,14 +90,14 @@ public:
   //!            flags
   //! \param[out] flags result of the refinement flags computation
   //! \param[in] refineParams Refinement parameters
-  ComputeRefineFlags(amr_hashmap_t            amr_hashmap,
-                     orchard_key_view_t       orchard_keys,
-                     int32_t                  local_num_octants,
-                     brick_size_t<dim>        brick_sizes,
-                     Kokkos::Array<bool, dim> is_brick_periodic,
-                     DataArrayBlock_t         userdata,
-                     amrflags_view_t          flags,
-                     RefineIndicatorData      refineParams)
+  ComputeRefineFlags(amr_hashmap_t const &            amr_hashmap,
+                     orchard_key_view_t const &       orchard_keys,
+                     int32_t                          local_num_octants,
+                     brick_size_t<dim> const &        brick_sizes,
+                     Kokkos::Array<bool, dim> const & is_brick_periodic,
+                     DataArrayBlock_t const &         userdata,
+                     amrflags_view_t const &          flags,
+                     RefineIndicatorData const &      refineParams)
     : m_helper(amr_hashmap, orchard_keys, userdata.block_size(), brick_sizes, is_brick_periodic)
     , m_amr_hashmap_device(amr_hashmap)
     , m_orchard_keys_device(orchard_keys)
@@ -122,14 +122,14 @@ public:
   //!
   //! \sa ComputeRefineFlags
   static void
-  run(amr_hashmap_t            amr_hashmap,
-      orchard_key_view_t       orchard_keys,
-      int32_t                  local_num_octants,
-      brick_size_t<dim>        brick_sizes,
-      Kokkos::Array<bool, dim> is_brick_periodic,
-      DataArrayBlock_t         userdata,
-      amrflags_view_t          flags,
-      RefineIndicatorData      refineParams);
+  run(amr_hashmap_t const &            amr_hashmap,
+      orchard_key_view_t const &       orchard_keys,
+      int32_t                          local_num_octants,
+      brick_size_t<dim> const &        brick_sizes,
+      Kokkos::Array<bool, dim> const & is_brick_periodic,
+      DataArrayBlock_t const &         userdata,
+      amrflags_view_t const &          flags,
+      RefineIndicatorData const &      refineParams);
 
   // ==============================================================
   // ==============================================================

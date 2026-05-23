@@ -16,13 +16,13 @@ namespace godunov_five_eq
 // ====================================================================
 template <size_t dim, typename device_t>
 ComputeLimitedSlopesFunctor<dim, device_t>::ComputeLimitedSlopesFunctor(
-  DataArrayGhostedBlock_t prim_var,
-  DataArrayGhostedBlock_t slopes_x,
-  DataArrayGhostedBlock_t slopes_y,
-  DataArrayGhostedBlock_t slopes_z,
-  int32_t                 iOct_begin,
-  int32_t                 num_octants,
-  HydroSettings           hydro_settings)
+  DataArrayGhostedBlock_t const & prim_var,
+  DataArrayGhostedBlock_t const & slopes_x,
+  DataArrayGhostedBlock_t const & slopes_y,
+  DataArrayGhostedBlock_t const & slopes_z,
+  int32_t                         iOct_begin,
+  int32_t                         num_octants,
+  HydroSettings const &           hydro_settings)
   : m_q(prim_var)
   , m_slopes_x(slopes_x)
   , m_slopes_y(slopes_y)
@@ -36,12 +36,13 @@ ComputeLimitedSlopesFunctor<dim, device_t>::ComputeLimitedSlopesFunctor(
 // ====================================================================
 template <size_t dim, typename device_t>
 void
-ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(DataArrayGhostedBlock_t primitive_vars,
-                                                           DataArrayGhostedBlock_t slopes_x,
-                                                           DataArrayGhostedBlock_t slopes_y,
-                                                           DataArrayGhostedBlock_t slopes_z,
-                                                           int32_t                 num_quads,
-                                                           HydroSettings           hydro_settings)
+ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(
+  DataArrayGhostedBlock_t const & primitive_vars,
+  DataArrayGhostedBlock_t const & slopes_x,
+  DataArrayGhostedBlock_t const & slopes_y,
+  DataArrayGhostedBlock_t const & slopes_z,
+  int32_t                         num_quads,
+  HydroSettings const &           hydro_settings)
 {
 
   ComputeLimitedSlopesFunctor<dim, device_t> functor(primitive_vars,
@@ -66,13 +67,13 @@ ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(DataArrayGhostedBlock
 template <size_t dim, typename device_t>
 void
 ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_ghosts(
-  DataArrayGhostedBlock_t primitive_vars_mg,
-  DataArrayGhostedBlock_t slopes_x,
-  DataArrayGhostedBlock_t slopes_y,
-  DataArrayGhostedBlock_t slopes_z,
-  int32_t                 num_mirrors,
-  int32_t                 num_ghosts,
-  HydroSettings           hydro_settings)
+  DataArrayGhostedBlock_t const & primitive_vars_mg,
+  DataArrayGhostedBlock_t const & slopes_x,
+  DataArrayGhostedBlock_t const & slopes_y,
+  DataArrayGhostedBlock_t const & slopes_z,
+  int32_t                         num_mirrors,
+  int32_t                         num_ghosts,
+  HydroSettings const &           hydro_settings)
 {
 
   // we expect primitive_vars to be of size num_mirrors + num_ghosts

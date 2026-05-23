@@ -17,14 +17,14 @@ namespace godunov_five_eq
 // ====================================================================
 template <size_t dim, typename device_t>
 void
-ComputeRefineFlags<dim, device_t>::run(amr_hashmap_t            amr_hashmap,
-                                       orchard_key_view_t       orchard_keys,
-                                       int32_t                  local_num_octants,
-                                       brick_size_t<dim>        brick_sizes,
-                                       Kokkos::Array<bool, dim> is_brick_periodic,
-                                       DataArrayBlock_t         userdata,
-                                       amrflags_view_t          flags,
-                                       RefineIndicatorData      refineParams)
+ComputeRefineFlags<dim, device_t>::run(amr_hashmap_t const &            amr_hashmap,
+                                       orchard_key_view_t const &       orchard_keys,
+                                       int32_t                          local_num_octants,
+                                       brick_size_t<dim> const &        brick_sizes,
+                                       Kokkos::Array<bool, dim> const & is_brick_periodic,
+                                       DataArrayBlock_t const &         userdata,
+                                       amrflags_view_t const &          flags,
+                                       RefineIndicatorData const &      refineParams)
 {
 
   ComputeRefineFlags<dim, device_t> functor(amr_hashmap,

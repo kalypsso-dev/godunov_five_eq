@@ -90,10 +90,10 @@ struct ComputeDerivedQuantities
   // ==========================================================================
   // ==========================================================================
   static DataArrayBlock_t
-  run(DataArrayBlock_t                     Udata,
+  run(DataArrayBlock_t const &             Udata,
       DERIVED_QUANTITY                     quantity,
-      HydroSettings                        hydro_settings,
-      EosWrapper_t<device_t>               eos,
+      HydroSettings const &                hydro_settings,
+      EosWrapper_t<device_t> const &       eos,
       int64_t                              iOct_begin,
       int64_t                              num_octs,
       [[maybe_unused]] ParallelEnv const & par_env)
@@ -163,13 +163,13 @@ struct ComputeDerivedQuantities
   // ==========================================================================
   // ==========================================================================
   static DataArrayBlock_t
-  run(DataArrayBlock_t       Udata,
-      std::string            quantity,
-      HydroSettings          hydro_settings,
-      EosWrapper_t<device_t> eos,
-      int64_t                iOct_begin,
-      int64_t                num_octs,
-      ParallelEnv const &    par_env)
+  run(DataArrayBlock_t const &       Udata,
+      std::string                    quantity,
+      HydroSettings const &          hydro_settings,
+      EosWrapper_t<device_t> const & eos,
+      int64_t                        iOct_begin,
+      int64_t                        num_octs,
+      ParallelEnv const &            par_env)
   {
     if (quantity == "rho_mix")
     {

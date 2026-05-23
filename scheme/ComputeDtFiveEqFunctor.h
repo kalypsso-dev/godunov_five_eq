@@ -87,15 +87,15 @@ private:
   const UniformGravityField<dim> m_gravity_field;
 
 public:
-  ComputeDtFiveEqFunctor(ConfigMap const &        config_map,
-                         orchard_key_view_t       orchard_keys,
-                         int32_t                  local_num_octants,
-                         HydroSettings            hydro_settings,
-                         block_size_t<dim>        block_sizes,
-                         DataArrayBlock_t         Udata,
-                         EosWrapper_t<device_t>   eos,
-                         bool                     gravity_enabled,
-                         UniformGravityField<dim> gravity_field);
+  ComputeDtFiveEqFunctor(ConfigMap const &              config_map,
+                         orchard_key_view_t const &     orchard_keys,
+                         int32_t                        local_num_octants,
+                         HydroSettings const &          hydro_settings,
+                         block_size_t<dim> const &      block_sizes,
+                         DataArrayBlock_t const &       Udata,
+                         EosWrapper_t<device_t> const & eos,
+                         bool                           gravity_enabled,
+                         UniformGravityField<dim>       gravity_field);
 
   // ====================================================================
   // ====================================================================
@@ -111,14 +111,14 @@ public:
   //! \param[in,out] invDt is the inverse of time step, the output of this functor
   //!
   static void
-  apply(ConfigMap const &      config_map,
-        orchard_key_view_t     orchard_keys,
-        int32_t                local_num_octants,
-        HydroSettings          hydro_settings,
-        block_size_t<dim>      block_sizes,
-        DataArrayBlock_t       Udata,
-        EosWrapper_t<device_t> eos,
-        real_t &               invDt);
+  apply(ConfigMap const &              config_map,
+        orchard_key_view_t const &     orchard_keys,
+        int32_t                        local_num_octants,
+        HydroSettings const &          hydro_settings,
+        block_size_t<dim> const &      block_sizes,
+        DataArrayBlock_t const &       Udata,
+        EosWrapper_t<device_t> const & eos,
+        real_t &                       invDt);
 
   /**
    * Update reduced variable when visiting a cell.
