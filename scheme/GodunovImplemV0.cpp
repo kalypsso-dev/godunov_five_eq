@@ -13,7 +13,8 @@
 #include <godunov_five_eq/scheme/ConvertToPrimitivesVariablesFunctor.h>
 #include <godunov_five_eq/scheme/ComputeLimitedSlopesFunctor.h>
 #include <godunov_five_eq/scheme/ComputeFluxesAndStoreFunctor.h>
-#include <godunov_five_eq/scheme/ComputeFluxesAndStoreTHINCFunctor.h>
+// #include <godunov_five_eq/scheme/ComputeFluxesAndStoreTHINCFunctor.h>
+#include <godunov_five_eq/scheme/FixVolumeFractionsNormalization.h>
 #include <godunov_five_eq/scheme/ReadFluxesAndConservativeUpdateFunctor.h>
 // #include <godunov_five_eq/scheme/AddGravitySourceTerm.h>
 
@@ -54,6 +55,8 @@ GodunovImplemV0<dim, device_t>::resize_auxiliary_data()
   // the neighbor directly inside
   m_Fluxes.resize(num_owned + num_ghosts);
 
+  m_u_star.resize(num_owned + num_ghosts);
+
 } // GodunovImplemV0<dim, device_t>::resize_auxiliary_data
 
 // =====================================================================
@@ -69,6 +72,7 @@ GodunovImplemV0<dim, device_t>::total_mem_size_in_bytes()
   total += m_Slopes_y.allocated_size_in_bytes();
   total += m_Slopes_z.allocated_size_in_bytes();
   total += m_Fluxes.allocated_size_in_bytes();
+  total += m_u_star.allocated_size_in_bytes();
 
   return total;
 } // GodunovImplemV0<dim, device_t>::total_mem_size_in_bytes
@@ -131,6 +135,9 @@ GodunovImplemV0<dim, device_t>::do_time_step(DataArrayBlock_t U, DataArrayBlock_
     this->read_fluxes_and_update_in_owned(U, U2, dt, IZ);
   }
 
+  // fix volume fractions to ensure the normalization property: \f$ sum_i \alpha_i = 1 \f$
+  FixVolumeFractionsNormalization<dim, device_t>::apply(this->m_mesh_map.get_amr_mesh_info(), U2);
+
   //
   // Add gravity source term when enabled
   //
@@ -164,10 +171,6 @@ GodunovImplemV0<dim, device_t>::convert_to_primitives_in_mirror_quads(DataArrayB
 
   KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_CONV_PRIM);
 
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  // necessary to access user data
-  const auto & fm = this->m_five_eq.get_fieldmap();
-
   // compute primitive variables in owned mirror blocks (U must have MPI ghost up to date)
   ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_in_mirrors(
     this->m_config_map,
@@ -177,7 +180,6 @@ GodunovImplemV0<dim, device_t>::convert_to_primitives_in_mirror_quads(DataArrayB
     this->m_mesh_map.get_amr_mesh_info(),
     U,
     m_Q_ghosted_mg,
-    fm,
     this->m_brick_sizes,
     this->m_is_brick_periodic,
     this->m_hydro_settings,
@@ -193,10 +195,6 @@ GodunovImplemV0<dim, device_t>::convert_to_primitives(DataArrayBlock_t U)
 {
 
   KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_CONV_PRIM);
-
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  // necessary to access user data
-  const auto & fm = this->m_five_eq.get_fieldmap();
 
   //
   // step 1: convert to primitive variables in owned quadrants
@@ -216,7 +214,6 @@ GodunovImplemV0<dim, device_t>::convert_to_primitives(DataArrayBlock_t U)
     num_quads_owned,
     U,
     m_Q_ghosted,
-    fm,
     this->m_brick_sizes,
     this->m_is_brick_periodic,
     this->m_hydro_settings,
@@ -256,16 +253,11 @@ GodunovImplemV0<dim, device_t>::compute_limited_slopes_in_owned_and_ghosts()
   const auto num_quadrants_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
   const auto num_quadrants_ghost = this->m_mesh_map.get_amr_mesh_info().local_num_ghosts();
 
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  // necessary to access user data
-  const auto & fm = this->m_five_eq.get_fieldmap();
-
   // compute limited slopes in all quadrants (owned + ghost)
   ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(m_Q_ghosted,
                                                              m_Slopes_x,
                                                              m_Slopes_y,
                                                              m_Slopes_z,
-                                                             fm,
                                                              num_quadrants_owned +
                                                                num_quadrants_ghost,
                                                              this->m_hydro_settings);
@@ -285,34 +277,30 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
   const auto num_quadrants_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
   const auto num_quadrants_ghost = this->m_mesh_map.get_amr_mesh_info().local_num_ghosts();
 
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  // necessary to access user data
-  const auto & fm = this->m_five_eq.get_fieldmap();
-
   // reshape flux to be a flux array in given direction
   auto flux_block_sizes = m_Q_ghosted.block_size();
   flux_block_sizes[direction]++;
   m_Fluxes.reshape(flux_block_sizes);
+  m_u_star.reshape(flux_block_sizes);
 
   // compute fluxes and update all quadrants in a group of quadrants
   if (this->m_thinc_params.enabled)
   {
-    ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(this->m_config_map,
-                                                            this->m_mesh_map.orchard_keys(),
-                                                            this->m_mesh_map.get_amr_mesh_info(),
-                                                            m_Fluxes,
-                                                            m_Q_ghosted,
-                                                            m_Slopes_x,
-                                                            m_Slopes_y,
-                                                            m_Slopes_z,
-                                                            fm,
-                                                            0,
-                                                            num_quadrants_owned +
-                                                              num_quadrants_ghost,
-                                                            direction,
-                                                            this->m_hydro_settings,
-                                                            this->m_eos,
-                                                            dt);
+    // ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(this->m_config_map,
+    //                                                         this->m_mesh_map.orchard_keys(),
+    //                                                         this->m_mesh_map.get_amr_mesh_info(),
+    //                                                         m_Fluxes,m_u_star,
+    //                                                         m_Q_ghosted,
+    //                                                         m_Slopes_x,
+    //                                                         m_Slopes_y,
+    //                                                         m_Slopes_z,
+    //                                                         0,
+    //                                                         num_quadrants_owned +
+    //                                                           num_quadrants_ghost,
+    //                                                         direction,
+    //                                                         this->m_hydro_settings,
+    //                                                         this->m_eos,
+    //                                                         dt);
   }
   else
   {
@@ -320,11 +308,11 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
                                                        this->m_mesh_map.orchard_keys(),
                                                        this->m_mesh_map.get_amr_mesh_info(),
                                                        m_Fluxes,
+                                                       m_u_star,
                                                        m_Q_ghosted,
                                                        m_Slopes_x,
                                                        m_Slopes_y,
                                                        m_Slopes_z,
-                                                       fm,
                                                        0,
                                                        num_quadrants_owned + num_quadrants_ghost,
                                                        direction,
@@ -347,10 +335,6 @@ GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned(DataArrayBlock_t
 
   KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_UPDATE);
 
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  // necessary to access user data
-  const auto & fm = this->m_five_eq.get_fieldmap();
-
   // check flux array sizes
   {
     [[maybe_unused]] auto flux_block_sizes = m_Q_ghosted.block_size();
@@ -369,7 +353,7 @@ GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned(DataArrayBlock_t
                                                                u_in,
                                                                u_out,
                                                                m_Fluxes,
-                                                               fm,
+                                                               m_u_star,
                                                                direction,
                                                                this->m_brick_sizes,
                                                                this->m_is_brick_periodic,

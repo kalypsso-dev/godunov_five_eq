@@ -52,23 +52,30 @@ public:
    * Compute mixture pressure.
    *
    * To be used only when there are two materials
+   *
+   * \param[in] rho mixture density
+   * \param[in] eint mixture specific internal energy
+   * \param[in] alpha0 volume fraction of material 0
+   * \param[in] alpha1 volume fraction of material 1
+   * \param[in] alpha_rho0 partial density of material 0
+   * \param[in] alpha_rho1 partial density of material 1
    */
   KOKKOS_INLINE_FUNCTION
   real_t
   mixture_pressure(real_t                  rho,
                    real_t                  eint,
-                   real_t                  phi0,
-                   [[maybe_unused]] real_t phi1,
-                   [[maybe_unused]] real_t phi_rho0,
-                   [[maybe_unused]] real_t phi_rho1) const
+                   real_t                  alpha0,
+                   [[maybe_unused]] real_t alpha1,
+                   [[maybe_unused]] real_t alpha_rho0,
+                   [[maybe_unused]] real_t alpha_rho1) const
   {
     if (m_eos_type == +core::eos::EOS_TYPE::IDEAL_GAS)
     {
-      return m_ig_mixture.mixture_pressure(rho, eint, phi0);
+      return m_ig_mixture.mixture_pressure(rho, eint, alpha0);
     }
     else if (m_eos_type == +core::eos::EOS_TYPE::STIFFENED_GAS)
     {
-      return m_sg_mixture.mixture_pressure(rho, eint, phi0);
+      return m_sg_mixture.mixture_pressure(rho, eint, alpha0);
     }
     return ZERO_F;
   }
@@ -77,23 +84,30 @@ public:
    * Compute mixture specific internal energy.
    *
    * To be used only when there are two materials
+   *
+   * \param[in] rho mixture density
+   * \param[in] pressure mixture pressure
+   * \param[in] alpha0 volume fraction of material 0
+   * \param[in] alpha1 volume fraction of material 1
+   * \param[in] alpha_rho0 partial density of material 0
+   * \param[in] alpha_rho1 partial density of material 1
    */
   KOKKOS_INLINE_FUNCTION
   real_t
   mixture_specific_eint(real_t                  rho,
                         real_t                  pressure,
-                        real_t                  phi0,
-                        [[maybe_unused]] real_t phi1,
-                        [[maybe_unused]] real_t phi_rho0,
-                        [[maybe_unused]] real_t phi_rho1) const
+                        real_t                  alpha0,
+                        [[maybe_unused]] real_t alpha1,
+                        [[maybe_unused]] real_t alpha_rho0,
+                        [[maybe_unused]] real_t alpha_rho1) const
   {
     if (m_eos_type == +core::eos::EOS_TYPE::IDEAL_GAS)
     {
-      return m_ig_mixture.mixture_specific_eint(pressure, rho, phi0);
+      return m_ig_mixture.mixture_specific_eint(pressure, rho, alpha0);
     }
     else if (m_eos_type == +core::eos::EOS_TYPE::STIFFENED_GAS)
     {
-      return m_sg_mixture.mixture_specific_eint(pressure, rho, phi0);
+      return m_sg_mixture.mixture_specific_eint(pressure, rho, alpha0);
     }
     return ZERO_F;
   }
@@ -102,23 +116,30 @@ public:
    * Compute mixture speed of sound.
    *
    * To be used only when there are two materials
+   *
+   * \param[in] rho mixture density
+   * \param[in] pressure mixture pressure
+   * \param[in] alpha0 volume fraction of material 0
+   * \param[in] alpha1 volume fraction of material 1
+   * \param[in] alpha_rho0 partial density of material 0
+   * \param[in] alpha_rho1 partial density of material 1
    */
   KOKKOS_INLINE_FUNCTION
   real_t
   mixture_sound_speed(real_t                  rho,
                       real_t                  pressure,
-                      real_t                  phi0,
-                      [[maybe_unused]] real_t phi1,
-                      [[maybe_unused]] real_t phi_rho0,
-                      [[maybe_unused]] real_t phi_rho1) const
+                      real_t                  alpha0,
+                      [[maybe_unused]] real_t alpha1,
+                      [[maybe_unused]] real_t alpha_rho0,
+                      [[maybe_unused]] real_t alpha_rho1) const
   {
     if (m_eos_type == +core::eos::EOS_TYPE::IDEAL_GAS)
     {
-      return m_ig_mixture.mixture_sound_speed(pressure, rho, phi0);
+      return m_ig_mixture.mixture_sound_speed(pressure, rho, alpha0);
     }
     else if (m_eos_type == +core::eos::EOS_TYPE::STIFFENED_GAS)
     {
-      return m_sg_mixture.mixture_sound_speed(pressure, rho, phi0);
+      return m_sg_mixture.mixture_sound_speed(pressure, rho, alpha0);
     }
     return ZERO_F;
   }

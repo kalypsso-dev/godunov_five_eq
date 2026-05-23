@@ -24,8 +24,7 @@ ComputeRefineFlags<dim, device_t>::run(amr_hashmap_t            amr_hashmap,
                                        Kokkos::Array<bool, dim> is_brick_periodic,
                                        DataArrayBlock_t         userdata,
                                        amrflags_view_t          flags,
-                                       RefineIndicatorData      refineParams,
-                                       FieldMap<models::FiveEq> fm)
+                                       RefineIndicatorData      refineParams)
 {
 
   ComputeRefineFlags<dim, device_t> functor(amr_hashmap,
@@ -35,8 +34,7 @@ ComputeRefineFlags<dim, device_t>::run(amr_hashmap_t            amr_hashmap,
                                             is_brick_periodic,
                                             userdata,
                                             flags,
-                                            refineParams,
-                                            fm);
+                                            refineParams);
 
   const auto nbCellsPerLeaf = userdata.num_cells();
   const auto nbCellsTotal = local_num_octants * nbCellsPerLeaf;
@@ -282,34 +280,34 @@ ComputeRefineFlags<dim, device_t>::operator()(TagLohnerSplit const &,
   auto       flag = AMRContextBase::KALYPSSO_FLAG_INIT;
 
   {
-    auto indicator = compute_lohner_split<IX>(cell_loc, cell_index, m_fm[Hydro::ID0]);
+    auto indicator = compute_lohner_split<IX>(cell_loc, cell_index, Hydro::IAD0);
     update_flag(flag, indicator, level);
   }
 
   {
-    auto indicator = compute_lohner_split<IY>(cell_loc, cell_index, m_fm[Hydro::ID0]);
-    update_flag(flag, indicator, level);
-  }
-
-  if constexpr (dim == 3)
-  {
-    auto indicator = compute_lohner_split<IZ>(cell_loc, cell_index, m_fm[Hydro::ID0]);
-    update_flag(flag, indicator, level);
-  }
-
-  {
-    auto indicator = compute_lohner_split<IX>(cell_loc, cell_index, m_fm[Hydro::ID1]);
-    update_flag(flag, indicator, level);
-  }
-
-  {
-    auto indicator = compute_lohner_split<IY>(cell_loc, cell_index, m_fm[Hydro::ID1]);
+    auto indicator = compute_lohner_split<IY>(cell_loc, cell_index, Hydro::IAD0);
     update_flag(flag, indicator, level);
   }
 
   if constexpr (dim == 3)
   {
-    auto indicator = compute_lohner_split<IZ>(cell_loc, cell_index, m_fm[Hydro::ID1]);
+    auto indicator = compute_lohner_split<IZ>(cell_loc, cell_index, Hydro::IAD0);
+    update_flag(flag, indicator, level);
+  }
+
+  {
+    auto indicator = compute_lohner_split<IX>(cell_loc, cell_index, Hydro::IAD1);
+    update_flag(flag, indicator, level);
+  }
+
+  {
+    auto indicator = compute_lohner_split<IY>(cell_loc, cell_index, Hydro::IAD1);
+    update_flag(flag, indicator, level);
+  }
+
+  if constexpr (dim == 3)
+  {
+    auto indicator = compute_lohner_split<IZ>(cell_loc, cell_index, Hydro::IAD1);
     update_flag(flag, indicator, level);
   }
 
@@ -334,10 +332,10 @@ ComputeRefineFlags<dim, device_t>::operator()(TagLohnerUnsplit const &,
   const auto level = orchard_key_t<dim>::level(key_cur);
   auto       flag = AMRContextBase::KALYPSSO_FLAG_INIT;
 
-  const auto indicator0 = compute_lohner_unsplit(cell_loc, cell_index, m_fm[Hydro::ID0]);
+  const auto indicator0 = compute_lohner_unsplit(cell_loc, cell_index, Hydro::IAD0);
   update_flag(flag, indicator0, level);
 
-  const auto indicator1 = compute_lohner_unsplit(cell_loc, cell_index, m_fm[Hydro::ID1]);
+  const auto indicator1 = compute_lohner_unsplit(cell_loc, cell_index, Hydro::IAD1);
   update_flag(flag, indicator1, level);
 
   Kokkos::atomic_max(&m_flags(iOct_global), flag);
@@ -361,10 +359,10 @@ ComputeRefineFlags<dim, device_t>::operator()(TagSimpleGradient const &,
   const auto level = orchard_key_t<dim>::level(key_cur);
   auto       flag = AMRContextBase::KALYPSSO_FLAG_INIT;
 
-  const auto indicator0 = compute_simple_gradient(cell_loc, cell_index, m_fm[Hydro::ID0]);
+  const auto indicator0 = compute_simple_gradient(cell_loc, cell_index, Hydro::IAD0);
   update_flag(flag, indicator0, level);
 
-  const auto indicator1 = compute_simple_gradient(cell_loc, cell_index, m_fm[Hydro::ID1]);
+  const auto indicator1 = compute_simple_gradient(cell_loc, cell_index, Hydro::IAD1);
   update_flag(flag, indicator1, level);
 
   Kokkos::atomic_max(&m_flags(iOct_global), flag);

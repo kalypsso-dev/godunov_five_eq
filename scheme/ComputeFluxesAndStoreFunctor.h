@@ -67,7 +67,7 @@ public:
   using DataArrayGhostedBlock_t = DataArrayGhostedBlock<dim, real_t, device_t>;
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   // access quadrant <-> orchard key (hence AMR level and quadrant size)
   using orchard_key_view_t = typename orchard_key_base_t<device_t>::view_t;
@@ -85,6 +85,9 @@ private:
   //! fluxes (output)
   DataArrayBlock_t m_Fluxes;
 
+  //! star velocity (output)
+  DataArrayBlock_t m_u_star;
+
   //! a ghosted block array of primitive variables (ghost width is 2)
   //! size :
   //! if implem version 0 : owned + ghost quadrants
@@ -99,9 +102,6 @@ private:
 
   //! ghosted block data arrays (ghost width is 1) - slopes along Z - only used when dim=3
   DataArrayGhostedBlock_t m_slopes_z;
-
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
 
   //! offset to first octant in flux array where to write
   const int32_t m_iOct_flux_offset;
@@ -146,45 +146,45 @@ public:
    * \param[in]  time step (as computed by CFL condition)
    *
    */
-  ComputeFluxesAndStoreFunctor(orchard_key_view_t       orchard_keys,
-                               AMRMeshInfo              amr_mesh_info,
-                               DataArrayBlock_t         fluxes,
-                               DataArrayGhostedBlock_t  q_ghosted,
-                               DataArrayGhostedBlock_t  slopes_x,
-                               DataArrayGhostedBlock_t  slopes_y,
-                               DataArrayGhostedBlock_t  slopes_z,
-                               FieldMap<models::FiveEq> fm,
-                               int32_t                  iOct_flux_offset,
-                               int32_t                  num_quads,
-                               int                      direction,
-                               HydroSettings            hydro_settings,
-                               EosWrapper_t<device_t>   eos,
-                               real_t                   dt,
-                               real_t                   scaling_factor,
-                               bool                     gravity_enabled,
-                               UniformGravityField<dim> gravity_field,
-                               TimeIntegrator           time_integrator);
+  ComputeFluxesAndStoreFunctor(orchard_key_view_t const &      orchard_keys,
+                               AMRMeshInfo const &             amr_mesh_info,
+                               DataArrayBlock_t const &        fluxes,
+                               DataArrayBlock_t const &        u_star,
+                               DataArrayGhostedBlock_t const & q_ghosted,
+                               DataArrayGhostedBlock_t const & slopes_x,
+                               DataArrayGhostedBlock_t const & slopes_y,
+                               DataArrayGhostedBlock_t const & slopes_z,
+                               int32_t                         iOct_flux_offset,
+                               int32_t                         num_quads,
+                               int                             direction,
+                               HydroSettings const &           hydro_settings,
+                               EosWrapper_t<device_t> const &  eos,
+                               real_t                          dt,
+                               real_t                          scaling_factor,
+                               bool                            gravity_enabled,
+                               UniformGravityField<dim>        gravity_field,
+                               TimeIntegrator                  time_integrator);
 
   // ==============================================================
   // ==============================================================
   //! static method which does it all: create and execute functor with range policy
   //!
   static void
-  apply(ConfigMap const &        config_map,
-        orchard_key_view_t       orchard_keys,
-        AMRMeshInfo              amr_mesh_info,
-        DataArrayBlock_t         fluxes,
-        DataArrayGhostedBlock_t  q_ghosted,
-        DataArrayGhostedBlock_t  slopes_x,
-        DataArrayGhostedBlock_t  slopes_y,
-        DataArrayGhostedBlock_t  slopes_z,
-        FieldMap<models::FiveEq> fm,
-        int32_t                  iOct_flux_offset,
-        int32_t                  num_quads,
-        int                      direction,
-        HydroSettings            hydro_settings,
-        EosWrapper_t<device_t>   eos,
-        real_t                   dt);
+  apply(ConfigMap const &               config_map,
+        orchard_key_view_t const &      orchard_keys,
+        AMRMeshInfo const &             amr_mesh_info,
+        DataArrayBlock_t const &        fluxes,
+        DataArrayBlock_t const &        u_star,
+        DataArrayGhostedBlock_t const & q_ghosted,
+        DataArrayGhostedBlock_t const & slopes_x,
+        DataArrayGhostedBlock_t const & slopes_y,
+        DataArrayGhostedBlock_t const & slopes_z,
+        int32_t                         iOct_flux_offset,
+        int32_t                         num_quads,
+        int                             direction,
+        HydroSettings const &           hydro_settings,
+        EosWrapper_t<device_t> const &  eos,
+        real_t                          dt);
 
   // ====================================================================
   // ====================================================================
@@ -201,12 +201,12 @@ public:
 
     HydroState<2> q;
 
-    q[Hydro::ID0] = m_q(i, j, m_fm[Hydro::ID0], iOct_local);
-    q[Hydro::ID1] = m_q(i, j, m_fm[Hydro::ID1], iOct_local);
-    q[Hydro::IPHI] = m_q(i, j, m_fm[Hydro::IPHI], iOct_local);
-    q[Hydro::IP] = m_q(i, j, m_fm[Hydro::IP], iOct_local);
-    q[Hydro::IU] = m_q(i, j, m_fm[Hydro::IU], iOct_local);
-    q[Hydro::IV] = m_q(i, j, m_fm[Hydro::IV], iOct_local);
+    q[Hydro::IAD0] = m_q(i, j, Hydro::IAD0, iOct_local);
+    q[Hydro::IAD1] = m_q(i, j, Hydro::IAD1, iOct_local);
+    q[Hydro::IA0] = m_q(i, j, Hydro::IA0, iOct_local);
+    q[Hydro::IP] = m_q(i, j, Hydro::IP, iOct_local);
+    q[Hydro::IU] = m_q(i, j, Hydro::IU, iOct_local);
+    q[Hydro::IV] = m_q(i, j, Hydro::IV, iOct_local);
 
     return q;
 
@@ -227,13 +227,13 @@ public:
 
     HydroState<3> q;
 
-    q[Hydro::ID0] = m_q(i, j, k, m_fm[Hydro::ID0], iOct_local);
-    q[Hydro::ID1] = m_q(i, j, k, m_fm[Hydro::ID1], iOct_local);
-    q[Hydro::IPHI] = m_q(i, j, k, m_fm[Hydro::IPHI], iOct_local);
-    q[Hydro::IP] = m_q(i, j, k, m_fm[Hydro::IP], iOct_local);
-    q[Hydro::IU] = m_q(i, j, k, m_fm[Hydro::IU], iOct_local);
-    q[Hydro::IV] = m_q(i, j, k, m_fm[Hydro::IV], iOct_local);
-    q[Hydro::IW] = m_q(i, j, k, m_fm[Hydro::IW], iOct_local);
+    q[Hydro::IAD0] = m_q(i, j, k, Hydro::IAD0, iOct_local);
+    q[Hydro::IAD1] = m_q(i, j, k, Hydro::IAD1, iOct_local);
+    q[Hydro::IA0] = m_q(i, j, k, Hydro::IA0, iOct_local);
+    q[Hydro::IP] = m_q(i, j, k, Hydro::IP, iOct_local);
+    q[Hydro::IU] = m_q(i, j, k, Hydro::IU, iOct_local);
+    q[Hydro::IV] = m_q(i, j, k, Hydro::IV, iOct_local);
+    q[Hydro::IW] = m_q(i, j, k, Hydro::IW, iOct_local);
 
     return q;
 
@@ -255,15 +255,15 @@ public:
   {
     iOct += m_iOct_flux_offset;
 
-    m_Fluxes(i, j, m_fm[Hydro::ID0], iOct) = flux[Hydro::ID0];
-    m_Fluxes(i, j, m_fm[Hydro::ID1], iOct) = flux[Hydro::ID1];
-    m_Fluxes(i, j, m_fm[Hydro::IPHI], iOct) = flux[Hydro::IPHI];
+    m_Fluxes(i, j, Hydro::IAD0, iOct) = flux[Hydro::IAD0];
+    m_Fluxes(i, j, Hydro::IAD1, iOct) = flux[Hydro::IAD1];
+    m_Fluxes(i, j, Hydro::IA0, iOct) = flux[Hydro::IA0];
 
-    m_Fluxes(i, j, m_fm[Hydro::IP], iOct) = flux[Hydro::IP];
-    m_Fluxes(i, j, m_fm[Hydro::IU], iOct) = flux[Hydro::IU];
-    m_Fluxes(i, j, m_fm[Hydro::IV], iOct) = flux[Hydro::IV];
+    m_Fluxes(i, j, Hydro::IP, iOct) = flux[Hydro::IP];
+    m_Fluxes(i, j, Hydro::IU, iOct) = flux[Hydro::IU];
+    m_Fluxes(i, j, Hydro::IV, iOct) = flux[Hydro::IV];
 
-    m_Fluxes(i, j, m_fm[Hydro::IUSTAR], iOct) = ustar_flux;
+    m_u_star(i, j, 0, iOct) = ustar_flux;
 
   } // set_flux - 2d
 
@@ -290,16 +290,16 @@ public:
   {
     iOct += m_iOct_flux_offset;
 
-    m_Fluxes(i, j, k, m_fm[Hydro::ID0], iOct) = flux[Hydro::ID0];
-    m_Fluxes(i, j, k, m_fm[Hydro::ID1], iOct) = flux[Hydro::ID1];
-    m_Fluxes(i, j, k, m_fm[Hydro::IPHI], iOct) = flux[Hydro::IPHI];
+    m_Fluxes(i, j, k, Hydro::IAD0, iOct) = flux[Hydro::IAD0];
+    m_Fluxes(i, j, k, Hydro::IAD1, iOct) = flux[Hydro::IAD1];
+    m_Fluxes(i, j, k, Hydro::IA0, iOct) = flux[Hydro::IA0];
 
-    m_Fluxes(i, j, k, m_fm[Hydro::IP], iOct) = flux[Hydro::IP];
-    m_Fluxes(i, j, k, m_fm[Hydro::IU], iOct) = flux[Hydro::IU];
-    m_Fluxes(i, j, k, m_fm[Hydro::IV], iOct) = flux[Hydro::IV];
-    m_Fluxes(i, j, k, m_fm[Hydro::IW], iOct) = flux[Hydro::IW];
+    m_Fluxes(i, j, k, Hydro::IP, iOct) = flux[Hydro::IP];
+    m_Fluxes(i, j, k, Hydro::IU, iOct) = flux[Hydro::IU];
+    m_Fluxes(i, j, k, Hydro::IV, iOct) = flux[Hydro::IV];
+    m_Fluxes(i, j, k, Hydro::IW, iOct) = flux[Hydro::IW];
 
-    m_Fluxes(i, j, k, m_fm[Hydro::IUSTAR], iOct) = ustar_flux;
+    m_u_star(i, j, k, 0, iOct) = ustar_flux;
 
   } // set_flux - 3d
 

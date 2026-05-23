@@ -18,18 +18,18 @@ namespace godunov_five_eq
 /*************************************************/
 template <size_t dim, typename device_t>
 ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::ReadFluxesAndConservativeUpdateFunctor(
-  ConfigMap const &          config_map,
-  StencilHelper_t            stencil_helper,
-  orchard_key_view_t         orchard_keys,
-  conformal_status_view_type conformal_status,
-  AMRMeshInfo                amr_mesh_info,
-  DataArrayBlock_t           u_in,
-  DataArrayBlock_t           u_out,
-  DataArrayBlock_t           fluxes,
-  FieldMap<models::FiveEq>   fm,
-  int                        direction,
-  HydroSettings              hydro_settings,
-  real_t                     dt)
+  ConfigMap const &                  config_map,
+  StencilHelper_t const &            stencil_helper,
+  orchard_key_view_t const &         orchard_keys,
+  conformal_status_view_type const & conformal_status,
+  AMRMeshInfo const &                amr_mesh_info,
+  DataArrayBlock_t const &           u_in,
+  DataArrayBlock_t const &           u_out,
+  DataArrayBlock_t const &           fluxes,
+  DataArrayBlock_t const &           u_star,
+  int                                direction,
+  HydroSettings const &              hydro_settings,
+  real_t                             dt)
   : m_stencil_helper(stencil_helper)
   , m_orchard_keys_device(orchard_keys)
   , m_conformal_status(conformal_status)
@@ -37,7 +37,7 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::ReadFluxesAndConservative
   , m_Uin(u_in)
   , m_Uout(u_out)
   , m_Fluxes(fluxes)
-  , m_fm(fm)
+  , m_u_star(u_star)
   , m_direction(direction)
   , m_num_owned(amr_mesh_info.local_num_quadrants())
   , m_num_ghosts(amr_mesh_info.local_num_ghosts())
@@ -52,20 +52,20 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::ReadFluxesAndConservative
 template <size_t dim, typename device_t>
 void
 ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::apply(
-  ConfigMap const &          config_map,
-  amr_hashmap_t              amr_hashmap,
-  orchard_key_view_t         orchard_keys,
-  conformal_status_view_type conformal_status,
-  AMRMeshInfo                amr_mesh_info,
-  DataArrayBlock_t           Uin,
-  DataArrayBlock_t           Uout,
-  DataArrayBlock_t           fluxes,
-  FieldMap<models::FiveEq>   fm,
-  int                        direction,
-  brick_size_t<dim>          brick_sizes,
-  Kokkos::Array<bool, dim>   is_brick_periodic,
-  HydroSettings              hydro_settings,
-  real_t                     dt)
+  ConfigMap const &                  config_map,
+  amr_hashmap_t const &              amr_hashmap,
+  orchard_key_view_t const &         orchard_keys,
+  conformal_status_view_type const & conformal_status,
+  AMRMeshInfo const &                amr_mesh_info,
+  DataArrayBlock_t const &           Uin,
+  DataArrayBlock_t const &           Uout,
+  DataArrayBlock_t const &           fluxes,
+  DataArrayBlock_t const &           u_star,
+  int                                direction,
+  brick_size_t<dim> const &          brick_sizes,
+  Kokkos::Array<bool, dim> const &   is_brick_periodic,
+  HydroSettings const &              hydro_settings,
+  real_t                             dt)
 {
   // Important note: the caller is responsible for providing a flux array with right shape.
   {
@@ -85,7 +85,7 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::apply(
                                                                 Uin,
                                                                 Uout,
                                                                 fluxes,
-                                                                fm,
+                                                                u_star,
                                                                 direction,
                                                                 hydro_settings,
                                                                 dt);
@@ -149,17 +149,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
+        accum_flux[Hydro::IA0] -=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux + read_flux(i, j, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
-          m_Fluxes(i, j, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] -= m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
       }
 
       //
@@ -176,17 +175,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
+        accum_flux[Hydro::IA0] +=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux - read_flux(i + 1, j, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
-          m_Fluxes(i + 1, j, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] += m_u_star(i + 1, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
       }
 
       update_U(i, j, iOct, accum_flux);
@@ -228,17 +226,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
+        accum_flux[Hydro::IA0] -=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux + read_flux(i, j, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
-          m_Fluxes(i, j, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] -= m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
       }
 
       //
@@ -255,17 +252,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
+        accum_flux[Hydro::IA0] +=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux - read_flux(i, j + 1, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
-          m_Fluxes(i, j + 1, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] += m_u_star(i, j + 1, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
       }
 
       update_U(i, j, iOct, accum_flux);
@@ -324,17 +320,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
+        accum_flux[Hydro::IA0] -=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux + read_flux(i, j, k, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
-          m_Fluxes(i, j, k, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] -= m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
       }
 
       //
@@ -351,17 +346,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
+        accum_flux[Hydro::IA0] +=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux - read_flux(i + 1, j, k, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] += m_Fluxes(i + 1, j, k, m_fm[Hydro::IUSTAR], iOct) *
-                                   m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] += m_u_star(i + 1, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
       }
 
       update_U(i, j, k, iOct, accum_flux);
@@ -403,17 +397,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
+        accum_flux[Hydro::IA0] -=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux + read_flux(i, j, k, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
-          m_Fluxes(i, j, k, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] -= m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
       }
 
       //
@@ -430,17 +423,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
+        accum_flux[Hydro::IA0] +=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux - read_flux(i, j + 1, k, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] += m_Fluxes(i, j + 1, k, m_fm[Hydro::IUSTAR], iOct) *
-                                   m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] += m_u_star(i, j + 1, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
       }
 
       update_U(i, j, k, iOct, accum_flux);
@@ -482,17 +474,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
+        accum_flux[Hydro::IA0] -=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux + read_flux(i, j, k, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] -=
-          m_Fluxes(i, j, k, m_fm[Hydro::IUSTAR], iOct) * m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] -= m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
       }
 
       //
@@ -509,17 +500,16 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] +=
+        accum_flux[Hydro::IA0] +=
           get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct) / volume_ratio;
+          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
       }
       else
       {
         accum_flux = accum_flux - read_flux(i, j, k + 1, iOct);
 
         // volumic fraction source term
-        accum_flux[Hydro::IPHI] += m_Fluxes(i, j, k + 1, m_fm[Hydro::IUSTAR], iOct) *
-                                   m_Uin(i, j, k, m_fm[Hydro::IPHI], iOct);
+        accum_flux[Hydro::IA0] += m_u_star(i, j, k + 1, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
       }
 
       update_U(i, j, k, iOct, accum_flux);

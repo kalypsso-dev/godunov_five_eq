@@ -206,12 +206,6 @@ public:
     return this->m_config_map;
   }
 
-  models::FiveEq const &
-  model() const
-  {
-    return m_five_eq;
-  }
-
   //! Equation of state parameters.
   //!
   //! make sure to return by copy (to ease use in device code)
@@ -299,9 +293,6 @@ private:
 
   //! array of bool to tell if mesh is periodic or not
   Kokkos::Array<bool, dim> m_is_brick_periodic;
-
-  //! model
-  models::FiveEq m_five_eq;
 
   //! hydrodynamics parameters
   const HydroSettings m_hydro_settings;

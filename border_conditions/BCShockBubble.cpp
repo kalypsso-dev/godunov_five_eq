@@ -23,17 +23,15 @@ namespace godunov_five_eq
 // ==============================================================================
 template <size_t dim, typename device_t>
 FillOutsideShockBubble<dim, device_t>::FillOutsideShockBubble(
-  DataArrayBlock_t const &         userdata,
-  AMRMeshInfo const &              amr_mesh_info,
-  orchard_key_view_t const &       orchard_keys,
-  amr_hashmap_t const &            amr_hashmap,
-  FieldMap<models::FiveEq> const & fm,
-  ConfigMap const &                config_map)
+  DataArrayBlock_t const &   userdata,
+  AMRMeshInfo const &        amr_mesh_info,
+  orchard_key_view_t const & orchard_keys,
+  amr_hashmap_t const &      amr_hashmap,
+  ConfigMap const &          config_map)
   : m_userdata(userdata)
   , m_amr_mesh_info(amr_mesh_info)
   , m_orchard_keys_device(orchard_keys)
   , m_amr_hashmap_device(amr_hashmap)
-  , m_fm(fm)
   , m_brick_size(get_brick_sizes<dim>(config_map))
   , m_brick_periodicity(get_brick_periodicity<dim>(config_map))
   , m_scaling_factor(get_scaling_factor(config_map))
@@ -45,16 +43,15 @@ FillOutsideShockBubble<dim, device_t>::FillOutsideShockBubble(
 // ==============================================================
 template <size_t dim, typename device_t>
 void
-FillOutsideShockBubble<dim, device_t>::apply(DataArrayBlock_t const &         userdata,
-                                             AMRMeshInfo const &              amr_mesh_info,
-                                             orchard_key_view_t const &       orchard_keys,
-                                             amr_hashmap_t const &            amr_hashmap,
-                                             FieldMap<models::FiveEq> const & fm,
-                                             ConfigMap const &                config_map)
+FillOutsideShockBubble<dim, device_t>::apply(DataArrayBlock_t const &   userdata,
+                                             AMRMeshInfo const &        amr_mesh_info,
+                                             orchard_key_view_t const & orchard_keys,
+                                             amr_hashmap_t const &      amr_hashmap,
+                                             ConfigMap const &          config_map)
 {
   // create compute functor
   FillOutsideShockBubble<dim, device_t> functor(
-    userdata, amr_mesh_info, orchard_keys, amr_hashmap, fm, config_map);
+    userdata, amr_mesh_info, orchard_keys, amr_hashmap, config_map);
 
   const int32_t start_octant = amr_mesh_info.first_outside_quad_local_id();
   const int32_t end_octant = start_octant + amr_mesh_info.total_local_number_of_outside_quads();
@@ -148,18 +145,11 @@ FillOutsideShockBubble<dim, device_t>::operator()(const index_t & i_global) cons
 
       if (m_bc_shock_bubble.needs_override(x, y))
       {
-        m_userdata(cellindex_out, m_fm[Hydro::ID0], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], Hydro::ID0);
-        m_userdata(cellindex_out, m_fm[Hydro::ID1], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], Hydro::ID1);
-        m_userdata(cellindex_out, m_fm[Hydro::IPHI], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], Hydro::IPHI);
-        m_userdata(cellindex_out, m_fm[Hydro::IP], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], Hydro::IP);
-        m_userdata(cellindex_out, m_fm[Hydro::IU], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], Hydro::IU);
-        m_userdata(cellindex_out, m_fm[Hydro::IV], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], Hydro::IV);
+        for (size_t ivar = 0; ivar < models::FiveEq<dim>::nbvar(); ++ivar)
+        {
+          m_userdata(cellindex_out, ivar, i_oct_outside) =
+            m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], static_cast<int32_t>(ivar));
+        }
       }
     }
     else if constexpr (dim == 3)
@@ -170,20 +160,11 @@ FillOutsideShockBubble<dim, device_t>::operator()(const index_t & i_global) cons
 
       if (m_bc_shock_bubble.needs_override(x, y, z))
       {
-        m_userdata(cellindex_out, m_fm[Hydro::ID0], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::ID0);
-        m_userdata(cellindex_out, m_fm[Hydro::ID1], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::ID1);
-        m_userdata(cellindex_out, m_fm[Hydro::IPHI], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::IPHI);
-        m_userdata(cellindex_out, m_fm[Hydro::IE], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::IE);
-        m_userdata(cellindex_out, m_fm[Hydro::IU], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::IU);
-        m_userdata(cellindex_out, m_fm[Hydro::IV], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::IV);
-        m_userdata(cellindex_out, m_fm[Hydro::IW], i_oct_outside) =
-          m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], Hydro::IW);
+        for (size_t ivar = 0; ivar < models::FiveEq<dim>::nbvar(); ++ivar)
+        {
+          m_userdata(cellindex_out, ivar, i_oct_outside) =
+            m_bc_shock_bubble(xyz_cell[IX], xyz_cell[IY], xyz_cell[IZ], static_cast<int32_t>(ivar));
+        }
       }
     }
   } // end if is_at_domain_border

@@ -57,9 +57,6 @@ public:
   // data array related type aliases
   using DataArrayGhostedBlock_t = DataArrayGhostedBlock<dim, real_t, device_t>;
 
-  // makes enum Hydro::VarId available
-  using Hydro = kalypsso::godunov_five_eq::models::FiveEq;
-
 private:
   //! a ghosted block array of primitive variables (ghost width is 2)
   DataArrayGhostedBlock_t m_q;
@@ -72,9 +69,6 @@ private:
 
   //! ghosted block data arrays (ghost width is 1) - slopes along Z - only used when dim=3
   DataArrayGhostedBlock_t m_slopes_z;
-
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
 
   //! starting octant id
   const int32_t m_iOct_begin;
@@ -114,14 +108,13 @@ public:
    *
    *
    */
-  ComputeLimitedSlopesFunctor(DataArrayGhostedBlock_t  prim_var,
-                              DataArrayGhostedBlock_t  slopes_x,
-                              DataArrayGhostedBlock_t  slopes_y,
-                              DataArrayGhostedBlock_t  slopes_z,
-                              FieldMap<models::FiveEq> fm,
-                              int32_t                  iOct_begin,
-                              int32_t                  num_octants,
-                              HydroSettings            hydro_settings);
+  ComputeLimitedSlopesFunctor(DataArrayGhostedBlock_t prim_var,
+                              DataArrayGhostedBlock_t slopes_x,
+                              DataArrayGhostedBlock_t slopes_y,
+                              DataArrayGhostedBlock_t slopes_z,
+                              int32_t                 iOct_begin,
+                              int32_t                 num_octants,
+                              HydroSettings           hydro_settings);
 
   // ====================================================================
   // ====================================================================
@@ -129,13 +122,12 @@ public:
   //!
   //! Use this member when computing slopes in a group of octant
   static void
-  apply_on_group(DataArrayGhostedBlock_t  primitive_vars,
-                 DataArrayGhostedBlock_t  slopes_x,
-                 DataArrayGhostedBlock_t  slopes_y,
-                 DataArrayGhostedBlock_t  slopes_z,
-                 FieldMap<models::FiveEq> fm,
-                 int32_t                  num_octants,
-                 HydroSettings            hydro_settings);
+  apply_on_group(DataArrayGhostedBlock_t primitive_vars,
+                 DataArrayGhostedBlock_t slopes_x,
+                 DataArrayGhostedBlock_t slopes_y,
+                 DataArrayGhostedBlock_t slopes_z,
+                 int32_t                 num_octants,
+                 HydroSettings           hydro_settings);
 
   // ====================================================================
   // ====================================================================
@@ -156,14 +148,13 @@ public:
   //!
   //! Use this member when computing slopes in ghost quadrants.
   static void
-  apply_on_ghosts(DataArrayGhostedBlock_t  primitive_vars_mg,
-                  DataArrayGhostedBlock_t  slopes_x,
-                  DataArrayGhostedBlock_t  slopes_y,
-                  DataArrayGhostedBlock_t  slopes_z,
-                  FieldMap<models::FiveEq> fm,
-                  int32_t                  num_mirrors,
-                  int32_t                  num_ghosts,
-                  HydroSettings            hydro_settings);
+  apply_on_ghosts(DataArrayGhostedBlock_t primitive_vars_mg,
+                  DataArrayGhostedBlock_t slopes_x,
+                  DataArrayGhostedBlock_t slopes_y,
+                  DataArrayGhostedBlock_t slopes_z,
+                  int32_t                 num_mirrors,
+                  int32_t                 num_ghosts,
+                  HydroSettings           hydro_settings);
 
   // ====================================================================
   // ====================================================================

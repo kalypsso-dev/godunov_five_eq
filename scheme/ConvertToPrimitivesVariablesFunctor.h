@@ -49,7 +49,7 @@ public:
   using StencilHelper_t = StencilHelper<dim, device_t>;
 
   //! makes enum VarId available
-  using Hydro = kalypsso::godunov_five_eq::models::FiveEq;
+  using Hydro = kalypsso::godunov_five_eq::models::FiveEq<dim>;
 
 private:
   //! helper to compute neighbor cell location
@@ -74,9 +74,6 @@ private:
 
   //! a ghosted data array (which block ghost cells need to be filled)
   DataArrayGhostedBlock_t m_userdata_out;
-
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
 
   //! hydro settings (EOS parameters)
   HydroSettings m_hydro_settings;
@@ -112,7 +109,6 @@ public:
                                       int32_t                      iOct_begin,
                                       DataArrayBlock_t             userdata_in,
                                       DataArrayGhostedBlock_t      userdata_out,
-                                      FieldMap<models::FiveEq>     fm,
                                       HydroSettings                hydro_settings,
                                       EosWrapper_t<device_t>       eos,
                                       CellCenteredProlongationType prolongation);
@@ -123,7 +119,6 @@ public:
                                       AMRMeshInfo                  amr_mesh_info,
                                       DataArrayBlock_t             userdata_in,
                                       DataArrayGhostedBlock_t      userdata_out,
-                                      FieldMap<models::FiveEq>     fm,
                                       HydroSettings                hydro_settings,
                                       EosWrapper_t<device_t>       eos,
                                       CellCenteredProlongationType prolongation);
@@ -142,7 +137,6 @@ public:
                  int32_t                  num_octants_in_group,
                  DataArrayBlock_t         userdata_in,
                  DataArrayGhostedBlock_t  userdata_out,
-                 FieldMap<models::FiveEq> fm,
                  brick_size_t<dim>        brick_sizes,
                  Kokkos::Array<bool, dim> is_brick_periodic,
                  HydroSettings            hydro_settings,
@@ -161,7 +155,6 @@ public:
                    AMRMeshInfo              amr_mesh_info,
                    DataArrayBlock_t         userdata_in,
                    DataArrayGhostedBlock_t  userdata_out,
-                   FieldMap<models::FiveEq> fm,
                    brick_size_t<dim>        brick_sizes,
                    Kokkos::Array<bool, dim> is_brick_periodic,
                    HydroSettings            hydro_settings,

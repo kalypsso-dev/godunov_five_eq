@@ -12,7 +12,7 @@
 #include <kalypsso/core/kokkos_shared.h>
 #include <kalypsso/core/kalypsso_data_container.h> // for DataArrayBlock
 
-#include <kalypsso/core/FieldMap.h>
+#include <godunov_five_eq/common.h>
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/models/utils.h>
@@ -66,7 +66,7 @@ struct ComputeDerivedQuantities
   using ExecutionSpace = typename device_t::execution_space;
 
   //! make enum FiveEq available
-  using FiveEq = models::FiveEq;
+  using FiveEq = models::FiveEq<dim>;
 
   // ==========================================================================
   // ==========================================================================
@@ -91,7 +91,6 @@ struct ComputeDerivedQuantities
   // ==========================================================================
   static DataArrayBlock_t
   run(DataArrayBlock_t                     Udata,
-      FieldMap<models::FiveEq>             fm,
       DERIVED_QUANTITY                     quantity,
       HydroSettings                        hydro_settings,
       EosWrapper_t<device_t>               eos,
@@ -119,18 +118,8 @@ struct ComputeDerivedQuantities
         const auto cell_index =
           static_cast<int32_t>(global_index - (iOct - iOct_begin) * nbCellsPerLeaf);
 
-        HydroState<dim> uLoc; // cell-centered conservative variables in current cell
-
-        // get conservative variable in current cell
-        uLoc[FiveEq::ID0] = Udata(cell_index, fm[FiveEq::ID0], iOct);
-        uLoc[FiveEq::ID1] = Udata(cell_index, fm[FiveEq::ID1], iOct);
-        uLoc[FiveEq::ID] = uLoc[FiveEq::ID0] + uLoc[FiveEq::ID1];
-        uLoc[FiveEq::IPHI] = Udata(cell_index, fm[FiveEq::IPHI], iOct);
-        uLoc[FiveEq::IE] = Udata(cell_index, fm[FiveEq::IE], iOct);
-        uLoc[FiveEq::IU] = Udata(cell_index, fm[FiveEq::IU], iOct);
-        uLoc[FiveEq::IV] = Udata(cell_index, fm[FiveEq::IV], iOct);
-        if constexpr (dim == 3)
-          uLoc[FiveEq::IW] = Udata(cell_index, fm[FiveEq::IW], iOct);
+        // cell-centered conservative variables in current cell
+        const auto uLoc = get_conservative_variables(Udata, cell_index, iOct);
 
         if (quantity._to_integral() == +DERIVED_QUANTITY::RHO_MIX)
         {
@@ -144,7 +133,8 @@ struct ComputeDerivedQuantities
         else if (quantity._to_integral() == +DERIVED_QUANTITY::SPEED_OF_SOUND)
         {
           HydroState<dim> qLoc;
-          res(cell_index, 0, iOct) = models::computePrimitives(uLoc, qLoc, hydro_settings, eos);
+          res(cell_index, 0, iOct) =
+            models::computePrimitives<dim>(uLoc, qLoc, hydro_settings, eos);
         }
         else if (quantity._to_integral() == +DERIVED_QUANTITY::SPECIFIC_EKIN)
         {
@@ -155,7 +145,7 @@ struct ComputeDerivedQuantities
           HydroState<dim> qLoc;
 
           // compute speed of sound
-          const auto cs = models::computePrimitives(uLoc, qLoc, hydro_settings, eos);
+          const auto cs = models::computePrimitives<dim>(uLoc, qLoc, hydro_settings, eos);
 
           auto u_norm = qLoc[FiveEq::IU] * qLoc[FiveEq::IU] + qLoc[FiveEq::IV] * qLoc[FiveEq::IV];
           if constexpr (dim == 3)
@@ -173,24 +163,22 @@ struct ComputeDerivedQuantities
   // ==========================================================================
   // ==========================================================================
   static DataArrayBlock_t
-  run(DataArrayBlock_t         Udata,
-      FieldMap<models::FiveEq> fm,
-      std::string              quantity,
-      HydroSettings            hydro_settings,
-      EosWrapper_t<device_t>   eos,
-      int64_t                  iOct_begin,
-      int64_t                  num_octs,
-      ParallelEnv const &      par_env)
+  run(DataArrayBlock_t       Udata,
+      std::string            quantity,
+      HydroSettings          hydro_settings,
+      EosWrapper_t<device_t> eos,
+      int64_t                iOct_begin,
+      int64_t                num_octs,
+      ParallelEnv const &    par_env)
   {
     if (quantity == "rho_mix")
     {
       return run(
-        Udata, fm, DERIVED_QUANTITY::RHO_MIX, hydro_settings, eos, iOct_begin, num_octs, par_env);
+        Udata, DERIVED_QUANTITY::RHO_MIX, hydro_settings, eos, iOct_begin, num_octs, par_env);
     }
     else if (quantity == "thermal_pressure")
     {
       return run(Udata,
-                 fm,
                  DERIVED_QUANTITY::THERMAL_PRESSURE,
                  hydro_settings,
                  eos,
@@ -201,7 +189,6 @@ struct ComputeDerivedQuantities
     else if (quantity == "speed_of_sound")
     {
       return run(Udata,
-                 fm,
                  DERIVED_QUANTITY::SPEED_OF_SOUND,
                  hydro_settings,
                  eos,
@@ -211,19 +198,12 @@ struct ComputeDerivedQuantities
     }
     else if (quantity == "specific_ekin")
     {
-      return run(Udata,
-                 fm,
-                 DERIVED_QUANTITY::SPECIFIC_EKIN,
-                 hydro_settings,
-                 eos,
-                 iOct_begin,
-                 num_octs,
-                 par_env);
+      return run(
+        Udata, DERIVED_QUANTITY::SPECIFIC_EKIN, hydro_settings, eos, iOct_begin, num_octs, par_env);
     }
     else if (quantity == "local_mach_number")
     {
       return run(Udata,
-                 fm,
                  DERIVED_QUANTITY::LOCAL_MACH_NUMBER,
                  hydro_settings,
                  eos,
@@ -237,7 +217,6 @@ struct ComputeDerivedQuantities
         "ComputeDerivedQuantity: unknow quantity (check your input parameter file) - use "
         "thermal pressure instead.");
       return run(Udata,
-                 fm,
                  DERIVED_QUANTITY::THERMAL_PRESSURE,
                  hydro_settings,
                  eos,

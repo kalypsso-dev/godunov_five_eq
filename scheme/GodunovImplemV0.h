@@ -77,36 +77,37 @@ public:
                   this->m_block_sizes + 2 * 2,
                   get_shift<dim>(-2),
                   "Q_ghosted (owned and ghosts)",
-                  nbvar_five_eq<dim, DO_INCLUDE_MIXTURE_DENSITY>(),
+                  models::FiveEq<dim>::nbvar(),
                   0)
     , m_Q_ghosted_mg(this->m_block_sizes,
                      this->m_block_sizes + 2 * 2,
                      get_shift<dim>(-2),
                      "Q_ghosted_mg",
-                     nbvar_five_eq<dim, DO_INCLUDE_MIXTURE_DENSITY>(),
+                     models::FiveEq<dim>::nbvar(),
                      0)
     , m_Slopes_x(this->m_block_sizes,
                  this->m_block_sizes + 2 * 1,
                  get_shift<dim>(-1),
                  "Slope_x_group",
-                 nbvar_five_eq<dim, DO_INCLUDE_MIXTURE_DENSITY>(),
+                 models::FiveEq<dim>::nbvar(),
                  0)
     , m_Slopes_y(this->m_block_sizes,
                  this->m_block_sizes + 2 * 1,
                  get_shift<dim>(-1),
                  "Slope_y_group",
-                 nbvar_five_eq<dim, DO_INCLUDE_MIXTURE_DENSITY>(),
+                 models::FiveEq<dim>::nbvar(),
                  0)
     , m_Slopes_z(this->m_block_sizes,
                  this->m_block_sizes + 2 * 1,
                  get_shift<dim>(-1),
                  "Slope_z_group",
-                 nbvar_five_eq<dim, DO_INCLUDE_MIXTURE_DENSITY>(),
+                 models::FiveEq<dim>::nbvar(),
                  0)
     , m_Fluxes("Fluxes",
                get_flux_block_sizes<dim>(this->m_block_sizes),
-               nbvar_five_eq<dim, DO_INCLUDE_MIXTURE_DENSITY>() + 1,
+               models::FiveEq<dim>::nbvar(),
                0)
+    , m_u_star("u_star", get_flux_block_sizes<dim>(this->m_block_sizes), 1, 0)
   {} // GodunovImplemV0
 
   // destructor
@@ -196,6 +197,11 @@ private:
   //! Fluxes is allocated with one extra field to store "ustar" necessary to compute
   //! the source term in the RHS of volumic fraction advection equation.
   DataArrayBlock_t m_Fluxes;
+
+  //! Temporary buffer to store u_star (as computed by the Riemann solver).
+  //! u_star is necessary to compute the source term in the RHS of volumic fraction
+  //! advection equation.
+  DataArrayBlock_t m_u_star;
 
   //! Convert conservative variables to primitive variables in mirror quadrants.
   //! Fills m_Q_ghosted_mg

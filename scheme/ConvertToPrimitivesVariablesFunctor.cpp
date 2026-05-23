@@ -22,7 +22,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
   int32_t                      iOct_begin,
   DataArrayBlock_t             userdata_in,
   DataArrayGhostedBlock_t      userdata_out,
-  FieldMap<models::FiveEq>     fm,
   HydroSettings                hydro_settings,
   EosWrapper_t<device_t>       eos,
   CellCenteredProlongationType prolongation)
@@ -32,7 +31,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
   , m_iOct_begin(iOct_begin)
   , m_userdata_in(userdata_in)
   , m_userdata_out(userdata_out)
-  , m_fm(fm)
   , m_hydro_settings(hydro_settings)
   , m_eos(eos)
   , m_prolongation(prolongation)
@@ -52,7 +50,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
   AMRMeshInfo                  amr_mesh_info,
   DataArrayBlock_t             userdata_in,
   DataArrayGhostedBlock_t      userdata_out,
-  FieldMap<models::FiveEq>     fm,
   HydroSettings                hydro_settings,
   EosWrapper_t<device_t>       eos,
   CellCenteredProlongationType prolongation)
@@ -62,7 +59,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::ConvertToPrimitivesVariables
   , m_iOct_begin(0) // not used when processing mirrors quad
   , m_userdata_in(userdata_in)
   , m_userdata_out(userdata_out)
-  , m_fm(fm)
   , m_hydro_settings(hydro_settings)
   , m_eos(eos)
   , m_prolongation(prolongation)
@@ -85,7 +81,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_on_group(
   int32_t                  num_octants_in_group,
   DataArrayBlock_t         userdata_in,
   DataArrayGhostedBlock_t  userdata_out,
-  FieldMap<models::FiveEq> fm,
   brick_size_t<dim>        brick_sizes,
   Kokkos::Array<bool, dim> is_brick_periodic,
   HydroSettings            hydro_settings,
@@ -104,7 +99,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_on_group(
     iOct_begin,
     userdata_in,
     userdata_out,
-    fm,
     hydro_settings,
     eos,
     get_cell_prolongation_type(config_map));
@@ -131,7 +125,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_in_mirrors(
   AMRMeshInfo              amr_mesh_info,
   DataArrayBlock_t         userdata_in,
   DataArrayGhostedBlock_t  userdata_out,
-  FieldMap<models::FiveEq> fm,
   brick_size_t<dim>        brick_sizes,
   Kokkos::Array<bool, dim> is_brick_periodic,
   HydroSettings            hydro_settings,
@@ -147,7 +140,6 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_in_mirrors(
     amr_mesh_info,
     userdata_in,
     userdata_out,
-    fm,
     hydro_settings,
     eos,
     get_cell_prolongation_type(config_map));
@@ -175,18 +167,21 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::get_conservative_vars(const 
 {
   HydroState<dim> uLoc; // conservative variables in current cell
 
-  uLoc[Hydro::ID0] = m_userdata_in(cellindex, m_fm[Hydro::ID0], iOct);
-  uLoc[Hydro::ID1] = m_userdata_in(cellindex, m_fm[Hydro::ID1], iOct);
-  uLoc[Hydro::ID] = uLoc[Hydro::ID0] + uLoc[Hydro::ID1];
-  uLoc[Hydro::IPHI] = m_userdata_in(cellindex, m_fm[Hydro::IPHI], iOct);
-  uLoc[Hydro::IE] = m_userdata_in(cellindex, m_fm[Hydro::IE], iOct);
-  uLoc[Hydro::IU] = m_userdata_in(cellindex, m_fm[Hydro::IU], iOct);
-  uLoc[Hydro::IV] = m_userdata_in(cellindex, m_fm[Hydro::IV], iOct);
+  uLoc[Hydro::ID] = m_userdata_in(cellindex, Hydro::ID, iOct);
+  uLoc[Hydro::IE] = m_userdata_in(cellindex, Hydro::IE, iOct);
+  uLoc[Hydro::IU] = m_userdata_in(cellindex, Hydro::IU, iOct);
+  uLoc[Hydro::IV] = m_userdata_in(cellindex, Hydro::IV, iOct);
 
   if constexpr (dim == 3)
   {
-    uLoc[Hydro::IW] = m_userdata_in(cellindex, m_fm[Hydro::IW], iOct);
+    uLoc[Hydro::IW] = m_userdata_in(cellindex, Hydro::IW, iOct);
   }
+
+  uLoc[Hydro::IA0] = m_userdata_in(cellindex, Hydro::IA0, iOct);
+  uLoc[Hydro::IAD0] = m_userdata_in(cellindex, Hydro::IAD0, iOct);
+
+  uLoc[Hydro::IA1] = m_userdata_in(cellindex, Hydro::IA1, iOct);
+  uLoc[Hydro::IAD1] = m_userdata_in(cellindex, Hydro::IAD1, iOct);
 
   return uLoc;
 
@@ -218,31 +213,33 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::get_conservative_vars_restri
 
   auto const & block_size = m_userdata_in.block_size();
 
-  uLoc[Hydro::ID0] = m_stencil_helper.compute_siblings_average(
-    cell_loc, block_size, m_fm[Hydro::ID0], m_userdata_in);
-
-  uLoc[Hydro::ID1] = m_stencil_helper.compute_siblings_average(
-    cell_loc, block_size, m_fm[Hydro::ID1], m_userdata_in);
-
-  uLoc[Hydro::ID] = uLoc[Hydro::ID0] + uLoc[Hydro::ID1];
-
-  uLoc[Hydro::IPHI] = m_stencil_helper.compute_siblings_average(
-    cell_loc, block_size, m_fm[Hydro::IPHI], m_userdata_in);
-
   uLoc[Hydro::IE] =
-    m_stencil_helper.compute_siblings_average(cell_loc, block_size, m_fm[Hydro::IE], m_userdata_in);
+    m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IE, m_userdata_in);
 
   uLoc[Hydro::IU] =
-    m_stencil_helper.compute_siblings_average(cell_loc, block_size, m_fm[Hydro::IU], m_userdata_in);
+    m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IU, m_userdata_in);
 
   uLoc[Hydro::IV] =
-    m_stencil_helper.compute_siblings_average(cell_loc, block_size, m_fm[Hydro::IV], m_userdata_in);
+    m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IV, m_userdata_in);
 
   if constexpr (dim == 3)
   {
-    uLoc[Hydro::IW] = m_stencil_helper.compute_siblings_average(
-      cell_loc, block_size, m_fm[Hydro::IW], m_userdata_in);
+    uLoc[Hydro::IW] =
+      m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IW, m_userdata_in);
   }
+
+  uLoc[Hydro::IAD0] =
+    m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IAD0, m_userdata_in);
+
+  uLoc[Hydro::IAD1] =
+    m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IAD1, m_userdata_in);
+
+  uLoc[Hydro::IA0] =
+    m_stencil_helper.compute_siblings_average(cell_loc, block_size, Hydro::IA0, m_userdata_in);
+
+  uLoc[Hydro::IA1] = ONE_F - uLoc[Hydro::IA0];
+
+  uLoc[Hydro::ID] = uLoc[Hydro::IAD0] + uLoc[Hydro::IAD1];
 
   return uLoc;
 
@@ -257,16 +254,17 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::set_primitive_vars(
   const iOct_t            iOct_out,
   HydroState<dim> const & q) const
 {
-  m_userdata_out(cellindex_g, m_fm[Hydro::ID], iOct_out) = q[Hydro::ID];
-  m_userdata_out(cellindex_g, m_fm[Hydro::ID0], iOct_out) = q[Hydro::ID0];
-  m_userdata_out(cellindex_g, m_fm[Hydro::ID1], iOct_out) = q[Hydro::ID1];
-  m_userdata_out(cellindex_g, m_fm[Hydro::IPHI], iOct_out) = q[Hydro::IPHI];
-  m_userdata_out(cellindex_g, m_fm[Hydro::IP], iOct_out) = q[Hydro::IP];
-  m_userdata_out(cellindex_g, m_fm[Hydro::IU], iOct_out) = q[Hydro::IU];
-  m_userdata_out(cellindex_g, m_fm[Hydro::IV], iOct_out) = q[Hydro::IV];
+  m_userdata_out(cellindex_g, Hydro::ID, iOct_out) = q[Hydro::ID];
+  m_userdata_out(cellindex_g, Hydro::IAD0, iOct_out) = q[Hydro::IAD0];
+  m_userdata_out(cellindex_g, Hydro::IAD1, iOct_out) = q[Hydro::IAD1];
+  m_userdata_out(cellindex_g, Hydro::IA0, iOct_out) = q[Hydro::IA0];
+  m_userdata_out(cellindex_g, Hydro::IA1, iOct_out) = ONE_F - q[Hydro::IA0];
+  m_userdata_out(cellindex_g, Hydro::IP, iOct_out) = q[Hydro::IP];
+  m_userdata_out(cellindex_g, Hydro::IU, iOct_out) = q[Hydro::IU];
+  m_userdata_out(cellindex_g, Hydro::IV, iOct_out) = q[Hydro::IV];
   if constexpr (dim == 3)
   {
-    m_userdata_out(cellindex_g, m_fm[Hydro::IW], iOct_out) = q[Hydro::IW];
+    m_userdata_out(cellindex_g, Hydro::IW, iOct_out) = q[Hydro::IW];
   }
 
 } // set_primitive_vars
@@ -503,7 +501,8 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::fill_inner(int32_t cellindex
 
   // compute primitive variables in current cell
   HydroState<dim>             qLoc; // primitive    variables in current cell
-  [[maybe_unused]] const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  [[maybe_unused]] const auto c =
+    models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   // write primitive variables
   set_primitive_vars(cellindex_out, iOct_out, qLoc);
@@ -529,7 +528,8 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::fill_ghost_copy(
 
   // compute primitive variables in current cell
   HydroState<dim>             qLoc; // primitive    variables in current cell
-  [[maybe_unused]] const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  [[maybe_unused]] const auto c =
+    models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   // write primitive variables
   set_primitive_vars(cellindex_out, iOct_out, qLoc);
@@ -564,31 +564,33 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
 
   HydroState<dim> uLoc; // conservative variables in current cell
 
-  uLoc[Hydro::ID0] = extrapol_2d(cell_loc_neigh,
-                                 cell_loc_left_x,
-                                 cell_loc_right_x,
-                                 cell_loc_left_y,
-                                 cell_loc_right_y,
-                                 ixyz,
-                                 m_fm[Hydro::ID0]);
-
-  uLoc[Hydro::ID1] = extrapol_2d(cell_loc_neigh,
-                                 cell_loc_left_x,
-                                 cell_loc_right_x,
-                                 cell_loc_left_y,
-                                 cell_loc_right_y,
-                                 ixyz,
-                                 m_fm[Hydro::ID1]);
-
-  uLoc[Hydro::ID] = uLoc[Hydro::ID0] + uLoc[Hydro::ID1];
-
-  uLoc[Hydro::IPHI] = extrapol_2d(cell_loc_neigh,
+  uLoc[Hydro::IAD0] = extrapol_2d(cell_loc_neigh,
                                   cell_loc_left_x,
                                   cell_loc_right_x,
                                   cell_loc_left_y,
                                   cell_loc_right_y,
                                   ixyz,
-                                  m_fm[Hydro::IPHI]);
+                                  Hydro::IAD0);
+
+  uLoc[Hydro::IAD1] = extrapol_2d(cell_loc_neigh,
+                                  cell_loc_left_x,
+                                  cell_loc_right_x,
+                                  cell_loc_left_y,
+                                  cell_loc_right_y,
+                                  ixyz,
+                                  Hydro::IAD1);
+
+  uLoc[Hydro::ID] = uLoc[Hydro::IAD0] + uLoc[Hydro::IAD1];
+
+  uLoc[Hydro::IA0] = extrapol_2d(cell_loc_neigh,
+                                 cell_loc_left_x,
+                                 cell_loc_right_x,
+                                 cell_loc_left_y,
+                                 cell_loc_right_y,
+                                 ixyz,
+                                 Hydro::IA0);
+
+  uLoc[Hydro::IA1] = ONE_F - uLoc[Hydro::IA0];
 
   uLoc[Hydro::IE] = extrapol_2d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -596,7 +598,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_y,
                                 cell_loc_right_y,
                                 ixyz,
-                                m_fm[Hydro::IE]);
+                                Hydro::IE);
 
   uLoc[Hydro::IU] = extrapol_2d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -604,7 +606,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_y,
                                 cell_loc_right_y,
                                 ixyz,
-                                m_fm[Hydro::IU]);
+                                Hydro::IU);
 
   uLoc[Hydro::IV] = extrapol_2d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -612,11 +614,12 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_y,
                                 cell_loc_right_y,
                                 ixyz,
-                                m_fm[Hydro::IV]);
+                                Hydro::IV);
 
   // compute primitive variables in current cell
   HydroState<dim>             qLoc; // primitive    variables in current cell
-  [[maybe_unused]] const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  [[maybe_unused]] const auto c =
+    models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   // write primitive variables
   set_primitive_vars(cellindex_out, iOct_out, qLoc);
@@ -657,29 +660,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
 
   HydroState<dim> uLoc; // conservative variables in current cell
 
-  uLoc[Hydro::ID0] = extrapol_3d(cell_loc_neigh,
-                                 cell_loc_left_x,
-                                 cell_loc_right_x,
-                                 cell_loc_left_y,
-                                 cell_loc_right_y,
-                                 cell_loc_left_z,
-                                 cell_loc_right_z,
-                                 ixyz,
-                                 m_fm[Hydro::ID0]);
-
-  uLoc[Hydro::ID1] = extrapol_3d(cell_loc_neigh,
-                                 cell_loc_left_x,
-                                 cell_loc_right_x,
-                                 cell_loc_left_y,
-                                 cell_loc_right_y,
-                                 cell_loc_left_z,
-                                 cell_loc_right_z,
-                                 ixyz,
-                                 m_fm[Hydro::ID1]);
-
-  uLoc[Hydro::ID] = uLoc[Hydro::ID0] + uLoc[Hydro::ID1];
-
-  uLoc[Hydro::IPHI] = extrapol_3d(cell_loc_neigh,
+  uLoc[Hydro::IAD0] = extrapol_3d(cell_loc_neigh,
                                   cell_loc_left_x,
                                   cell_loc_right_x,
                                   cell_loc_left_y,
@@ -687,7 +668,31 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                   cell_loc_left_z,
                                   cell_loc_right_z,
                                   ixyz,
-                                  m_fm[Hydro::IPHI]);
+                                  Hydro::IAD0);
+
+  uLoc[Hydro::IAD1] = extrapol_3d(cell_loc_neigh,
+                                  cell_loc_left_x,
+                                  cell_loc_right_x,
+                                  cell_loc_left_y,
+                                  cell_loc_right_y,
+                                  cell_loc_left_z,
+                                  cell_loc_right_z,
+                                  ixyz,
+                                  Hydro::IAD1);
+
+  uLoc[Hydro::ID] = uLoc[Hydro::IAD0] + uLoc[Hydro::IAD1];
+
+  uLoc[Hydro::IA0] = extrapol_3d(cell_loc_neigh,
+                                 cell_loc_left_x,
+                                 cell_loc_right_x,
+                                 cell_loc_left_y,
+                                 cell_loc_right_y,
+                                 cell_loc_left_z,
+                                 cell_loc_right_z,
+                                 ixyz,
+                                 Hydro::IA0);
+
+  uLoc[Hydro::IA1] = ONE_F - uLoc[Hydro::IA0];
 
   uLoc[Hydro::IE] = extrapol_3d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -697,7 +702,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_z,
                                 cell_loc_right_z,
                                 ixyz,
-                                m_fm[Hydro::IE]);
+                                Hydro::IE);
 
   uLoc[Hydro::IU] = extrapol_3d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -707,7 +712,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_z,
                                 cell_loc_right_z,
                                 ixyz,
-                                m_fm[Hydro::IU]);
+                                Hydro::IU);
 
   uLoc[Hydro::IV] = extrapol_3d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -717,7 +722,7 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_z,
                                 cell_loc_right_z,
                                 ixyz,
-                                m_fm[Hydro::IV]);
+                                Hydro::IV);
 
   uLoc[Hydro::IW] = extrapol_3d(cell_loc_neigh,
                                 cell_loc_left_x,
@@ -727,11 +732,12 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::linear_extrapolate_using_lim
                                 cell_loc_left_z,
                                 cell_loc_right_z,
                                 ixyz,
-                                m_fm[Hydro::IW]);
+                                Hydro::IW);
 
   // compute primitive variables in current cell
   HydroState<dim>             qLoc; // primitive    variables in current cell
-  [[maybe_unused]] const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  [[maybe_unused]] const auto c =
+    models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   // write primitive variables
   set_primitive_vars(cellindex_out, iOct_out, qLoc);
@@ -755,22 +761,24 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::conservative_interpolation_o
 
   HydroState<dim> uLoc; // conservative variables in current cell
 
-  uLoc[Hydro::ID0] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::ID0]);
-  uLoc[Hydro::ID1] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::ID1]);
-  uLoc[Hydro::ID] = uLoc[Hydro::ID0] + uLoc[Hydro::ID1];
-  uLoc[Hydro::IPHI] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::IPHI]);
-  uLoc[Hydro::IE] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::IE]);
-  uLoc[Hydro::IU] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::IU]);
-  uLoc[Hydro::IV] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::IV]);
+  uLoc[Hydro::IAD0] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IAD0);
+  uLoc[Hydro::IAD1] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IAD1);
+  uLoc[Hydro::ID] = uLoc[Hydro::IAD0] + uLoc[Hydro::IAD1];
+  uLoc[Hydro::IA0] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IA0);
+  uLoc[Hydro::IA1] = ONE_F - uLoc[Hydro::IA0];
+  uLoc[Hydro::IE] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IE);
+  uLoc[Hydro::IU] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IU);
+  uLoc[Hydro::IV] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IV);
 
   if constexpr (dim == 3)
   {
-    uLoc[Hydro::IW] = interpol_order2(cell_loc_neigh, ixyz, m_fm[Hydro::IW]);
+    uLoc[Hydro::IW] = interpol_order2(cell_loc_neigh, ixyz, Hydro::IW);
   }
 
   // compute primitive variables in current cell
   HydroState<dim>             qLoc; // primitive    variables in current cell
-  [[maybe_unused]] const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  [[maybe_unused]] const auto c =
+    models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   // write primitive variables
   set_primitive_vars(cellindex_out, iOct_out, qLoc);
@@ -794,22 +802,24 @@ ConvertToPrimitivesVariablesFunctor<dim, device_t>::conservative_interpolation_o
 
   HydroState<dim> uLoc; // conservative variables in current cell
 
-  uLoc[Hydro::ID0] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::ID0]);
-  uLoc[Hydro::ID1] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::ID1]);
-  uLoc[Hydro::ID] = uLoc[Hydro::ID0] + uLoc[Hydro::ID1];
-  uLoc[Hydro::IPHI] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::IPHI]);
-  uLoc[Hydro::IE] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::IE]);
-  uLoc[Hydro::IU] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::IU]);
-  uLoc[Hydro::IV] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::IV]);
+  uLoc[Hydro::IAD0] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IAD0);
+  uLoc[Hydro::IAD1] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IAD1);
+  uLoc[Hydro::ID] = uLoc[Hydro::IAD0] + uLoc[Hydro::IAD1];
+  uLoc[Hydro::IA0] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IA0);
+  uLoc[Hydro::IA1] = ONE_F - uLoc[Hydro::IA0];
+  uLoc[Hydro::IE] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IE);
+  uLoc[Hydro::IU] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IU);
+  uLoc[Hydro::IV] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IV);
 
   if constexpr (dim == 3)
   {
-    uLoc[Hydro::IW] = interpol_order4(cell_loc_neigh, ixyz, m_fm[Hydro::IW]);
+    uLoc[Hydro::IW] = interpol_order4(cell_loc_neigh, ixyz, Hydro::IW);
   }
 
   // compute primitive variables in current cell
   HydroState<dim>             qLoc; // primitive    variables in current cell
-  [[maybe_unused]] const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  [[maybe_unused]] const auto c =
+    models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   // write primitive variables
   set_primitive_vars(cellindex_out, iOct_out, qLoc);
