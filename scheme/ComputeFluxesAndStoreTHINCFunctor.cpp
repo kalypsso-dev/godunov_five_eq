@@ -346,23 +346,35 @@ ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::reconstruct_state_3d(
 
     // is it a left or right interface ?
     //  i-1  L|R     i    L|R    i+1
-    const int  a = offsets[dir] < 0 ? 1 : 0;
+    // const int  a = offsets[dir] < 0 ? 1 : 0;
     const int  b = offsets[dir] < 0 ? -1 : 1;
     const auto beta = m_thinc.beta * fabs(normal_vector[dir]) + KALYPSSO_NUM(0.01);
-    const auto A = exp(2 * beta);
-    const auto B = exp(2 * beta * q[Hydro::IA0]);
-    const auto c = KALYPSSO_NUM(1.0) / 2 / beta * log((B - KALYPSSO_NUM(1.0)) / (A - B));
-    const auto sigma =
-      COPYSIGN(ONE_F,
-               m_q(is + uv[IX], js + uv[IY], ks + uv[IZ], Hydro::IA0, iOct_local) -
-                 m_q(is - uv[IX], js - uv[IY], ks - uv[IZ], Hydro::IA0, iOct_local));
-    const auto sigma_p1o2 = (sigma + ONE_F) / 2;
+    // const auto A = exp(2 * beta);
+    // const auto B = exp(2 * beta * q[Hydro::IA0]);
+    // const auto c = KALYPSSO_NUM(1.0) / 2 / beta * log((B - KALYPSSO_NUM(1.0)) / (A - B));
+    // const auto sigma =
+    //   COPYSIGN(ONE_F,
+    //            m_q(is + uv[IX], js + uv[IY], ks + uv[IZ], Hydro::IA0, iOct_local) -
+    //              m_q(is - uv[IX], js - uv[IY], ks - uv[IZ], Hydro::IA0, iOct_local));
+    // const auto sigma_p1o2 = (sigma + ONE_F) / 2;
 
+    const auto A = (m_q(is + uv[IX], js + uv[IY], ks + uv[IZ], Hydro::IA0, iOct_local) +
+                    m_q(is - uv[IX], js - uv[IY], ks - uv[IZ], Hydro::IA0, iOct_local)) /
+                   2;
+    const auto B = (m_q(is + uv[IX], js + uv[IY], ks + uv[IZ], Hydro::IA0, iOct_local) -
+                    m_q(is - uv[IX], js - uv[IY], ks - uv[IZ], Hydro::IA0, iOct_local)) /
+                   2;
+    const auto C = tanh(HALF_F * beta);
+    const auto phi = m_q(is, js, ks, Hydro::IA0, iOct_local);
+    const auto D = tanh(HALF_F * beta * (phi - A) / B);
 
-    // eq (43)
-    qr[Hydro::IA0] =
-      HALF_F *
-      (ONE_F + tanh(beta * (static_cast<real_t>(a) + static_cast<real_t>(b) * sigma_p1o2 + c)));
+    // eq (41) - Zhang JCP 2025
+    // qr[Hydro::IA0] =
+    //   HALF_F *
+    //   (ONE_F + tanh(beta * (static_cast<real_t>(a) + static_cast<real_t>(b) * sigma_p1o2 + c)));
+
+    // eq (43) - Zhang JCP 2025
+    qr[Hydro::IA0] = A + b * B * (C + b * D / C) / (ONE_F + b * D);
 
     // eq (45)
     // clang-format off
