@@ -24,7 +24,6 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/InitTwoFluidShockTube.h
     init/InitUnderwaterExplosion.cpp
     init/InitUnderwaterExplosion.h
-    models/FiveEq.cpp
     models/FiveEq.h
     models/HydroState.h
     models/RiemannSolvers.h
@@ -42,6 +41,8 @@ set(GODUNOV_FIVE_EQ_SRCS
     scheme/ComputeRefineFlags.h
     scheme/ConvertToPrimitivesVariablesFunctor.cpp
     scheme/ConvertToPrimitivesVariablesFunctor.h
+    scheme/FixVolumeFractionsNormalization.cpp
+    scheme/FixVolumeFractionsNormalization.h
     scheme/GodunovImplemBase.h
     scheme/GodunovImplemV0.cpp
     scheme/GodunovImplemV0.h

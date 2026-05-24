@@ -140,7 +140,7 @@ run_simulation(ParallelEnv const &       par_env,
   // =================================================================================
   if (!solver->problem_name().compare("two_fluid_shock_tube"))
   {
-    using FiveEq = godunov_five_eq::models::FiveEq;
+    using FiveEq = godunov_five_eq::models::FiveEq<dim>;
 
     auto solver_five_eq =
       dynamic_cast<godunov_five_eq::SolverGodunovFiveEq<dim, device_t> *>(solver);
@@ -149,15 +149,11 @@ run_simulation(ParallelEnv const &       par_env,
 
     // 1. save main variables
     {
-      const auto cell_var_ids = std::vector<int32_t>{
-        solver_five_eq->model().get_fieldmap()[FiveEq::ID0],
-        solver_five_eq->model().get_fieldmap()[FiveEq::ID1],
-        solver_five_eq->model().get_fieldmap()[FiveEq::IE],
-        solver_five_eq->model().get_fieldmap()[FiveEq::IU],
-        solver_five_eq->model().get_fieldmap()[FiveEq::IPHI],
-      };
+      const auto cell_var_ids =
+        std::vector<int32_t>{ FiveEq::IAD0, FiveEq::IAD1, FiveEq::IE, FiveEq::IU, FiveEq::IA0 };
 
-      const auto cell_var_names = std::vector<std::string>{ "rho0", "rho1", "etot", "rhou", "phi" };
+      const auto cell_var_names =
+        std::vector<std::string>{ "alpha_rho_0", "alpha_rho_1", "e_tot", "rho_vx", "alpha_0" };
 
       kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
         solver_five_eq->U(),
@@ -224,7 +220,6 @@ run_simulation(ParallelEnv const &       par_env,
     const auto num_quadrants = solver_impl->U().num_quadrants();
     const auto num_cells = solver_impl->U().num_cells();
     const auto Udata = solver_impl->U();
-    const auto fm = solver_impl->model().get_fieldmap();
     const auto curvature = solver_impl->smooth_interface_function_data().m_curvature;
 
     real_t              sum_curvature, total_sum_curvature = ZERO_F;
@@ -237,8 +232,8 @@ run_simulation(ParallelEnv const &       par_env,
         const auto iOct = index / Udata.num_cells();
         const auto cellindex = index - iOct * num_cells;
 
-        const auto phi = Udata(cellindex, fm[godunov_five_eq::models::FiveEq::IPHI], iOct);
-        const bool is_near_interface = phi * (ONE_F - phi) > KALYPSSO_NUM(0.001);
+        const auto alpha = Udata(cellindex, godunov_five_eq::models::FiveEq<dim>::IA0, iOct);
+        const bool is_near_interface = alpha * (ONE_F - alpha) > KALYPSSO_NUM(0.001);
 
 
         const auto ijk = cellindex_to_coord<dim>(cellindex, Udata.block_size());
@@ -266,8 +261,8 @@ run_simulation(ParallelEnv const &       par_env,
         const auto iOct = index / num_cells;
         const auto cellindex = index - iOct * Udata.num_cells();
 
-        const auto phi = Udata(cellindex, fm[godunov_five_eq::models::FiveEq::IPHI], iOct);
-        const auto is_near_interface = phi * (ONE_F - phi) > KALYPSSO_NUM(0.001);
+        const auto alpha = Udata(cellindex, godunov_five_eq::models::FiveEq<dim>::IA0, iOct);
+        const auto is_near_interface = alpha * (ONE_F - alpha) > KALYPSSO_NUM(0.001);
 
         if (is_near_interface)
           local_sum++;

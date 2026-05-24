@@ -16,19 +16,17 @@ namespace godunov_five_eq
 // ====================================================================
 template <size_t dim, typename device_t>
 ComputeLimitedSlopesFunctor<dim, device_t>::ComputeLimitedSlopesFunctor(
-  DataArrayGhostedBlock_t  prim_var,
-  DataArrayGhostedBlock_t  slopes_x,
-  DataArrayGhostedBlock_t  slopes_y,
-  DataArrayGhostedBlock_t  slopes_z,
-  FieldMap<models::FiveEq> fm,
-  int32_t                  iOct_begin,
-  int32_t                  num_octants,
-  HydroSettings            hydro_settings)
+  DataArrayGhostedBlock_t const & prim_var,
+  DataArrayGhostedBlock_t const & slopes_x,
+  DataArrayGhostedBlock_t const & slopes_y,
+  DataArrayGhostedBlock_t const & slopes_z,
+  int32_t                         iOct_begin,
+  int32_t                         num_octants,
+  HydroSettings const &           hydro_settings)
   : m_q(prim_var)
   , m_slopes_x(slopes_x)
   , m_slopes_y(slopes_y)
   , m_slopes_z(slopes_z)
-  , m_fm(fm)
   , m_iOct_begin(iOct_begin)
   , m_num_octants(num_octants)
   , m_hydro_settings(hydro_settings)
@@ -38,20 +36,19 @@ ComputeLimitedSlopesFunctor<dim, device_t>::ComputeLimitedSlopesFunctor(
 // ====================================================================
 template <size_t dim, typename device_t>
 void
-ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(DataArrayGhostedBlock_t  primitive_vars,
-                                                           DataArrayGhostedBlock_t  slopes_x,
-                                                           DataArrayGhostedBlock_t  slopes_y,
-                                                           DataArrayGhostedBlock_t  slopes_z,
-                                                           FieldMap<models::FiveEq> fm,
-                                                           int32_t                  num_quads,
-                                                           HydroSettings            hydro_settings)
+ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(
+  DataArrayGhostedBlock_t const & primitive_vars,
+  DataArrayGhostedBlock_t const & slopes_x,
+  DataArrayGhostedBlock_t const & slopes_y,
+  DataArrayGhostedBlock_t const & slopes_z,
+  int32_t                         num_quads,
+  HydroSettings const &           hydro_settings)
 {
 
   ComputeLimitedSlopesFunctor<dim, device_t> functor(primitive_vars,
                                                      slopes_x,
                                                      slopes_y,
                                                      slopes_z,
-                                                     fm,
                                                      0,         // first index to compute
                                                      num_quads, // number of quads to process
                                                      hydro_settings);
@@ -70,14 +67,13 @@ ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(DataArrayGhostedBlock
 template <size_t dim, typename device_t>
 void
 ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_ghosts(
-  DataArrayGhostedBlock_t  primitive_vars_mg,
-  DataArrayGhostedBlock_t  slopes_x,
-  DataArrayGhostedBlock_t  slopes_y,
-  DataArrayGhostedBlock_t  slopes_z,
-  FieldMap<models::FiveEq> fm,
-  int32_t                  num_mirrors,
-  int32_t                  num_ghosts,
-  HydroSettings            hydro_settings)
+  DataArrayGhostedBlock_t const & primitive_vars_mg,
+  DataArrayGhostedBlock_t const & slopes_x,
+  DataArrayGhostedBlock_t const & slopes_y,
+  DataArrayGhostedBlock_t const & slopes_z,
+  int32_t                         num_mirrors,
+  int32_t                         num_ghosts,
+  HydroSettings const &           hydro_settings)
 {
 
   // we expect primitive_vars to be of size num_mirrors + num_ghosts
@@ -99,7 +95,6 @@ ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_ghosts(
                                                      slopes_x,
                                                      slopes_y,
                                                      slopes_z,
-                                                     fm,
                                                      num_mirrors, // first index to compute in q_mg
                                                      num_ghosts,  // number of quads to compute
                                                      hydro_settings);

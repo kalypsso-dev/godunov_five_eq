@@ -89,7 +89,7 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     {
       KALYPSSO_WARN("Problem : {} is not recognized / implemented.", problem_name);
       KALYPSSO_WARN("Use default - two_fluid_shock_tube");
-      InitTwoFluidShockTube<dim, device_t>::apply(solver);
+      // InitTwoFluidShockTube<dim, device_t>::apply(solver);
     }
 
     // print mesh info
@@ -166,23 +166,17 @@ init_restart([[maybe_unused]] SolverGodunovFiveEq<dim, device_t> & solver)
 
     // write user data (all enabled field)
 
-    // retrieve available / allowed names: fieldManager, and field map (fm)
-    const auto & fm = solver.model().get_fieldmap();
-
-    // a map containing ID and name of the variable to write
-    const auto id2names = solver.model().get_id2names_map();
+    const auto nb_var = models::FiveEq<dim>::nbvar();
 
     // we don't need to check for rho_mix
     // it has been included in a checkpoint file
-    for (auto & iter : id2names)
+    for (size_t ivar = 0; ivar < nb_var; ++ivar)
     {
-      auto varId = static_cast<typename godunov_five_eq::models::FiveEq::VarId>(iter.first);
-
       // get variables string name
-      const auto varName = id2names.at(varId);
+      const auto varName = models::FiveEq<dim>::name(ivar);
 
       total_num_bytes += reader.read_quadrant_attribute(
-        solver.Uhost(), fm[varId], varName, 0, solver.Uhost().num_quadrants());
+        solver.Uhost(), static_cast<int32_t>(ivar), varName, 0, solver.Uhost().num_quadrants());
 
     } // end for iter
 

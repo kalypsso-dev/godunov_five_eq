@@ -23,16 +23,15 @@ namespace godunov_five_eq
 template <size_t dim, typename device_t>
 void
 InitUnderwaterExplosionDataFunctor<dim, device_t>::apply(
-  DataArrayBlock_t                     Udata,
-  FieldMap<models::FiveEq>             fm,
-  orchard_key_view_t<device_t>         orchard_keys,
+  DataArrayBlock_t const &             Udata,
+  orchard_key_view_t<device_t> const & orchard_keys,
   int32_t                              local_num_octants,
   InitialStates<dim, device_t> const & initial_states,
   ConfigMap const &                    config_map)
 {
   // data init functor
   InitUnderwaterExplosionDataFunctor functor(
-    Udata, fm, orchard_keys, local_num_octants, initial_states, config_map);
+    Udata, orchard_keys, local_num_octants, initial_states, config_map);
 
   // compute total number of cells
   const auto nbCellsPerLeaf = Udata.num_cells();
@@ -58,7 +57,7 @@ InitUnderwaterExplosionDataFunctor<dim, device_t>::operator()(const int32_t & gl
   const auto cell_index = global_index - iOct * m_Udata.num_cells();
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   const auto & block_sizes = m_Udata.block_size();
 
@@ -90,33 +89,41 @@ InitUnderwaterExplosionDataFunctor<dim, device_t>::operator()(const int32_t & gl
   if (loc >= interface_loc)
   {
     // use air state
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(0)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(0)[Hydro::ID1];
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(0)[Hydro::IPHI];
+    m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(0)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(0)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(0)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(0)[Hydro::IV];
+    m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(0)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) = m_initial_states(0)[Hydro::IA1];
+
+    m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(0)[Hydro::IU];
+    m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(0)[Hydro::IV];
     if constexpr (dim == 3)
     {
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(0)[Hydro::IW];
+      m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(0)[Hydro::IW];
     }
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(0)[Hydro::IE];
+    m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(0)[Hydro::IE];
   }
   else
   {
     // use water state
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(1)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(1)[Hydro::ID1];
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(1)[Hydro::IPHI];
+    m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(1)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(1)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(1)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(1)[Hydro::IV];
+    m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(1)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) = m_initial_states(1)[Hydro::IA1];
+
+    m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(1)[Hydro::IU];
+    m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(1)[Hydro::IV];
     if constexpr (dim == 3)
     {
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(1)[Hydro::IW];
+      m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(1)[Hydro::IW];
     }
 
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(1)[Hydro::IE];
+    m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(1)[Hydro::IE];
   }
 
   // determine if current is completely inside or outside of the droplet
@@ -144,17 +151,21 @@ InitUnderwaterExplosionDataFunctor<dim, device_t>::operator()(const int32_t & gl
   if (is_inside)
   {
     // use air inside bubble (region_id=2)
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(2)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(2)[Hydro::ID1];
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(2)[Hydro::IPHI];
+    m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(2)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(2)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(2)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(2)[Hydro::IV];
+    m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(2)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) = m_initial_states(2)[Hydro::IA1];
+
+    m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(2)[Hydro::IU];
+    m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(2)[Hydro::IV];
     if constexpr (dim == 3)
     {
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(2)[Hydro::IW];
+      m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(2)[Hydro::IW];
     }
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(2)[Hydro::IE];
+    m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(2)[Hydro::IE];
   }
   else if (is_outside)
   {
@@ -189,24 +200,30 @@ InitUnderwaterExplosionDataFunctor<dim, device_t>::operator()(const int32_t & gl
     {
 
       const auto phi0 = bubble_vol_frac;
-      m_Udata(cell_index, m_fm[Hydro::ID0], iOct) =
-        phi0 * m_initial_states(2)[Hydro::ID0] + (ONE_F - phi0) * m_initial_states(1)[Hydro::ID0];
+      m_Udata(cell_index, Hydro::IAD0, iOct) =
+        phi0 * m_initial_states(2)[Hydro::IAD0] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IAD0];
 
-      m_Udata(cell_index, m_fm[Hydro::ID1], iOct) =
-        phi0 * m_initial_states(2)[Hydro::ID1] + (ONE_F - phi0) * m_initial_states(1)[Hydro::ID1];
+      m_Udata(cell_index, Hydro::IAD1, iOct) =
+        phi0 * m_initial_states(2)[Hydro::IAD1] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IAD1];
 
-      m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) =
-        phi0 * m_initial_states(2)[Hydro::IPHI] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IPHI];
+      m_Udata(cell_index, Hydro::ID, iOct) =
+        m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-      m_Udata(cell_index, m_fm[Hydro::IU], iOct) =
+      m_Udata(cell_index, Hydro::IA0, iOct) =
+        phi0 * m_initial_states(2)[Hydro::IA0] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IA0];
+
+      m_Udata(cell_index, Hydro::IA1, iOct) =
+        phi0 * m_initial_states(2)[Hydro::IA1] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IA1];
+
+      m_Udata(cell_index, Hydro::IU, iOct) =
         phi0 * m_initial_states(2)[Hydro::IU] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IU];
 
-      m_Udata(cell_index, m_fm[Hydro::IV], iOct) =
+      m_Udata(cell_index, Hydro::IV, iOct) =
         phi0 * m_initial_states(2)[Hydro::IV] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IV];
 
       if constexpr (dim == 3)
       {
-        m_Udata(cell_index, m_fm[Hydro::IW], iOct) =
+        m_Udata(cell_index, Hydro::IW, iOct) =
           phi0 * m_initial_states(2)[Hydro::IW] + (ONE_F - phi0) * m_initial_states(1)[Hydro::IW];
       }
 
@@ -227,18 +244,17 @@ InitUnderwaterExplosionDataFunctor<dim, device_t>::operator()(const int32_t & gl
       }
 
       real_t rho_mixed =
-        m_Udata(cell_index, m_fm[Hydro::ID0], iOct) + m_Udata(cell_index, m_fm[Hydro::ID1], iOct);
+        m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
       auto ekin_mixed =
-        m_Udata(cell_index, m_fm[Hydro::IU], iOct) * m_Udata(cell_index, m_fm[Hydro::IU], iOct) +
-        m_Udata(cell_index, m_fm[Hydro::IV], iOct) * m_Udata(cell_index, m_fm[Hydro::IV], iOct);
+        m_Udata(cell_index, Hydro::IU, iOct) * m_Udata(cell_index, Hydro::IU, iOct) +
+        m_Udata(cell_index, Hydro::IV, iOct) * m_Udata(cell_index, Hydro::IV, iOct);
       if constexpr (dim == 3)
-        ekin_mixed +=
-          m_Udata(cell_index, m_fm[Hydro::IW], iOct) * m_Udata(cell_index, m_fm[Hydro::IW], iOct);
+        ekin_mixed += m_Udata(cell_index, Hydro::IW, iOct) * m_Udata(cell_index, Hydro::IW, iOct);
       ekin_mixed /= (TWO_F * rho_mixed);
 
       const auto eint_mixed = phi0 * eint[2] + (ONE_F - phi0) * eint[1];
 
-      m_Udata(cell_index, m_fm[Hydro::IE], iOct) = eint_mixed + ekin_mixed;
+      m_Udata(cell_index, Hydro::IE, iOct) = eint_mixed + ekin_mixed;
     }
   }
 
@@ -252,17 +268,16 @@ template class InitUnderwaterExplosionDataFunctor<3, kalypsso::DefaultDevice>;
 template <size_t dim, typename device_t>
 void
 InitUnderwaterExplosionRefineFunctor<dim, device_t>::apply(
-  DataArrayBlock_t             Udata,
-  FieldMap<models::FiveEq>     fm,
-  orchard_key_view_t<device_t> orchard_keys,
-  amrflags_view_t              amrflags,
-  int32_t                      local_num_octants,
-  int                          level_refine,
-  ConfigMap const &            config_map)
+  DataArrayBlock_t const &             Udata,
+  orchard_key_view_t<device_t> const & orchard_keys,
+  amrflags_view_t const &              amrflags,
+  int32_t                              local_num_octants,
+  int                                  level_refine,
+  ConfigMap const &                    config_map)
 {
   // iterate functor for refinement
   InitUnderwaterExplosionRefineFunctor functor(
-    Udata, fm, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
+    Udata, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
 
   const auto refine_type = core::get_init_indicator(config_map);
 
@@ -384,7 +399,6 @@ InitUnderwaterExplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t>
 
   // first init of Udata
   InitUnderwaterExplosionDataFunctor<dim, device_t>::apply(solver.U(),
-                                                           solver.model().get_fieldmap(),
                                                            solver.mesh_map()->orchard_keys(),
                                                            solver.amr_mesh()->local_num_quadrants(),
                                                            initial_states,
@@ -409,7 +423,6 @@ InitUnderwaterExplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t>
       //
       InitUnderwaterExplosionDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,
@@ -438,7 +451,6 @@ InitUnderwaterExplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t>
       //
       InitUnderwaterExplosionRefineFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         flags_d,
         solver.amr_mesh()->local_num_quadrants(),
@@ -471,7 +483,6 @@ InitUnderwaterExplosion<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t>
       //
       InitUnderwaterExplosionDataFunctor<dim, device_t>::apply(
         solver.U(),
-        solver.model().get_fieldmap(),
         solver.mesh_map()->orchard_keys(),
         solver.amr_mesh()->local_num_quadrants(),
         initial_states,

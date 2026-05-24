@@ -24,7 +24,6 @@ template <size_t dim, typename device_t>
 void
 InitShockBubbleDataFunctor<dim, device_t>::apply(
   DataArrayBlock_t const &             Udata,
-  FieldMap<models::FiveEq>             fm,
   orchard_key_view_t<device_t> const & orchard_keys,
   int32_t                              local_num_octants,
   InitialStates<dim, device_t> const & initial_states,
@@ -34,7 +33,7 @@ InitShockBubbleDataFunctor<dim, device_t>::apply(
 
   // data init functor
   InitShockBubbleDataFunctor functor(
-    Udata, fm, orchard_keys, local_num_octants, initial_states, config_map);
+    Udata, orchard_keys, local_num_octants, initial_states, config_map);
 
   // compute total number of cells
   const auto nbCellsPerLeaf = Udata.num_cells();
@@ -60,7 +59,7 @@ InitShockBubbleDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
   const auto cell_index = global_index - iOct * m_Udata.num_cells();
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   const auto & block_sizes = m_Udata.block_size();
 
@@ -88,33 +87,41 @@ InitShockBubbleDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
   if (xyz[IX] <= m_sb_params.x_front)
   {
     // use post-shock hydro state
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(0)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(0)[Hydro::ID1];
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(0)[Hydro::IPHI];
+    m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(0)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(0)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(0)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(0)[Hydro::IV];
+    m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(0)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) = ONE_F - m_Udata(cell_index, Hydro::IA0, iOct);
+
+    m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(0)[Hydro::IU];
+    m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(0)[Hydro::IV];
     if constexpr (dim == 3)
     {
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(0)[Hydro::IW];
+      m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(0)[Hydro::IW];
     }
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(0)[Hydro::IE];
+    m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(0)[Hydro::IE];
   }
   else
   {
     // use pre-shock hydro state
-    m_Udata(cell_index, m_fm[Hydro::ID0], iOct) = m_initial_states(1)[Hydro::ID0];
-    m_Udata(cell_index, m_fm[Hydro::ID1], iOct) = m_initial_states(1)[Hydro::ID1];
-    m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) = m_initial_states(1)[Hydro::IPHI];
+    m_Udata(cell_index, Hydro::IAD0, iOct) = m_initial_states(1)[Hydro::IAD0];
+    m_Udata(cell_index, Hydro::IAD1, iOct) = m_initial_states(1)[Hydro::IAD1];
+    m_Udata(cell_index, Hydro::ID, iOct) =
+      m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-    m_Udata(cell_index, m_fm[Hydro::IU], iOct) = m_initial_states(1)[Hydro::IU];
-    m_Udata(cell_index, m_fm[Hydro::IV], iOct) = m_initial_states(1)[Hydro::IV];
+    m_Udata(cell_index, Hydro::IA0, iOct) = m_initial_states(1)[Hydro::IA0];
+    m_Udata(cell_index, Hydro::IA1, iOct) = ONE_F - m_Udata(cell_index, Hydro::IA0, iOct);
+
+    m_Udata(cell_index, Hydro::IU, iOct) = m_initial_states(1)[Hydro::IU];
+    m_Udata(cell_index, Hydro::IV, iOct) = m_initial_states(1)[Hydro::IV];
     if constexpr (dim == 3)
     {
-      m_Udata(cell_index, m_fm[Hydro::IW], iOct) = m_initial_states(1)[Hydro::IW];
+      m_Udata(cell_index, Hydro::IW, iOct) = m_initial_states(1)[Hydro::IW];
     }
 
-    m_Udata(cell_index, m_fm[Hydro::IE], iOct) = m_initial_states(1)[Hydro::IE];
+    m_Udata(cell_index, Hydro::IE, iOct) = m_initial_states(1)[Hydro::IE];
   }
 
   // get cell size
@@ -144,31 +151,32 @@ InitShockBubbleDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
     if (bubble_vol_frac > ZERO_F)
     {
       const auto phi0 = ONE_F - bubble_vol_frac;
-      m_Udata(cell_index, m_fm[Hydro::ID0], iOct) =
-        phi0 * m_initial_states(1)[Hydro::ID0] +
-        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::ID0];
+      m_Udata(cell_index, Hydro::IAD0, iOct) =
+        phi0 * m_initial_states(1)[Hydro::IAD0] +
+        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IAD0];
 
-      m_Udata(cell_index, m_fm[Hydro::ID1], iOct) =
-        phi0 * m_initial_states(1)[Hydro::ID1] +
-        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::ID1];
+      m_Udata(cell_index, Hydro::IAD1, iOct) =
+        phi0 * m_initial_states(1)[Hydro::IAD1] +
+        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IAD1];
 
-      m_Udata(cell_index, m_fm[Hydro::IPHI], iOct) =
-        phi0 * m_initial_states(1)[Hydro::IPHI] +
-        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IPHI];
+      m_Udata(cell_index, Hydro::ID, iOct) =
+        m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
 
-      m_Udata(cell_index, m_fm[Hydro::IU], iOct) =
-        phi0 * m_initial_states(1)[Hydro::IU] +
-        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IU];
+      m_Udata(cell_index, Hydro::IA0, iOct) = phi0 * m_initial_states(1)[Hydro::IA0] +
+                                              (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IA0];
 
-      m_Udata(cell_index, m_fm[Hydro::IV], iOct) =
-        phi0 * m_initial_states(1)[Hydro::IV] +
-        (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IV];
+      m_Udata(cell_index, Hydro::IA1, iOct) = ONE_F - m_Udata(cell_index, Hydro::IA0, iOct);
+
+      m_Udata(cell_index, Hydro::IU, iOct) = phi0 * m_initial_states(1)[Hydro::IU] +
+                                             (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IU];
+
+      m_Udata(cell_index, Hydro::IV, iOct) = phi0 * m_initial_states(1)[Hydro::IV] +
+                                             (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IV];
 
       if constexpr (dim == 3)
       {
-        m_Udata(cell_index, m_fm[Hydro::IW], iOct) =
-          phi0 * m_initial_states(1)[Hydro::IW] +
-          (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IW];
+        m_Udata(cell_index, Hydro::IW, iOct) = phi0 * m_initial_states(1)[Hydro::IW] +
+                                               (ONE_F - phi0) * m_initial_states(2 + ib)[Hydro::IW];
       }
 
       // compute pure state internal energy
@@ -199,18 +207,17 @@ InitShockBubbleDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
       }
 
       real_t rho_mixed =
-        m_Udata(cell_index, m_fm[Hydro::ID0], iOct) + m_Udata(cell_index, m_fm[Hydro::ID1], iOct);
+        m_Udata(cell_index, Hydro::IAD0, iOct) + m_Udata(cell_index, Hydro::IAD1, iOct);
       auto ekin_mixed =
-        m_Udata(cell_index, m_fm[Hydro::IU], iOct) * m_Udata(cell_index, m_fm[Hydro::IU], iOct) +
-        m_Udata(cell_index, m_fm[Hydro::IV], iOct) * m_Udata(cell_index, m_fm[Hydro::IV], iOct);
+        m_Udata(cell_index, Hydro::IU, iOct) * m_Udata(cell_index, Hydro::IU, iOct) +
+        m_Udata(cell_index, Hydro::IV, iOct) * m_Udata(cell_index, Hydro::IV, iOct);
       if constexpr (dim == 3)
-        ekin_mixed +=
-          m_Udata(cell_index, m_fm[Hydro::IW], iOct) * m_Udata(cell_index, m_fm[Hydro::IW], iOct);
+        ekin_mixed += m_Udata(cell_index, Hydro::IW, iOct) * m_Udata(cell_index, Hydro::IW, iOct);
       ekin_mixed /= (TWO_F * rho_mixed);
 
       const auto eint_mixed = phi0 * eint_pre_shock + (ONE_F - phi0) * eint_bubble;
 
-      m_Udata(cell_index, m_fm[Hydro::IE], iOct) = eint_mixed + ekin_mixed;
+      m_Udata(cell_index, Hydro::IE, iOct) = eint_mixed + ekin_mixed;
     }
 
   } // end for ib
@@ -226,7 +233,6 @@ template <size_t dim, typename device_t>
 void
 InitShockBubbleRefineFunctor<dim, device_t>::apply(
   DataArrayBlock_t const &             Udata,
-  FieldMap<models::FiveEq>             fm,
   orchard_key_view_t<device_t> const & orchard_keys,
   amrflags_view_t const &              amrflags,
   int32_t                              local_num_octants,
@@ -235,7 +241,7 @@ InitShockBubbleRefineFunctor<dim, device_t>::apply(
 {
   // iterate functor for refinement
   InitShockBubbleRefineFunctor functor(
-    Udata, fm, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
+    Udata, orchard_keys, amrflags, local_num_octants, level_refine, config_map);
 
   const auto refine_type = core::get_init_indicator(config_map);
 
@@ -363,7 +369,6 @@ InitShockBubble<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solve
 
   // first init of Udata
   InitShockBubbleDataFunctor<dim, device_t>::apply(solver.U(),
-                                                   solver.model().get_fieldmap(),
                                                    solver.mesh_map()->orchard_keys(),
                                                    solver.amr_mesh()->local_num_quadrants(),
                                                    initial_states,
@@ -387,7 +392,6 @@ InitShockBubble<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solve
       // 2. update Udata
       //
       InitShockBubbleDataFunctor<dim, device_t>::apply(solver.U(),
-                                                       solver.model().get_fieldmap(),
                                                        solver.mesh_map()->orchard_keys(),
                                                        solver.amr_mesh()->local_num_quadrants(),
                                                        initial_states,
@@ -415,7 +419,6 @@ InitShockBubble<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solve
       // 2. compute refine/coarsen flags
       //
       InitShockBubbleRefineFunctor<dim, device_t>::apply(solver.U(),
-                                                         solver.model().get_fieldmap(),
                                                          solver.mesh_map()->orchard_keys(),
                                                          flags_d,
                                                          solver.amr_mesh()->local_num_quadrants(),
@@ -447,7 +450,6 @@ InitShockBubble<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solve
       // 6. update Udata
       //
       InitShockBubbleDataFunctor<dim, device_t>::apply(solver.U(),
-                                                       solver.model().get_fieldmap(),
                                                        solver.mesh_map()->orchard_keys(),
                                                        solver.amr_mesh()->local_num_quadrants(),
                                                        initial_states,

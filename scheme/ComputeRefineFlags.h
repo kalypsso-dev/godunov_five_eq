@@ -62,7 +62,7 @@ public:
   using DataArrayLeaf_t = DataArrayLeaf<real_t, device_t>;
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   struct TagLohnerSplit
   {};
@@ -90,16 +90,14 @@ public:
   //!            flags
   //! \param[out] flags result of the refinement flags computation
   //! \param[in] refineParams Refinement parameters
-  //! \param[in] fm the field map
-  ComputeRefineFlags(amr_hashmap_t            amr_hashmap,
-                     orchard_key_view_t       orchard_keys,
-                     int32_t                  local_num_octants,
-                     brick_size_t<dim>        brick_sizes,
-                     Kokkos::Array<bool, dim> is_brick_periodic,
-                     DataArrayBlock_t         userdata,
-                     amrflags_view_t          flags,
-                     RefineIndicatorData      refineParams,
-                     FieldMap<models::FiveEq> fm)
+  ComputeRefineFlags(amr_hashmap_t const &            amr_hashmap,
+                     orchard_key_view_t const &       orchard_keys,
+                     int32_t                          local_num_octants,
+                     brick_size_t<dim> const &        brick_sizes,
+                     Kokkos::Array<bool, dim> const & is_brick_periodic,
+                     DataArrayBlock_t const &         userdata,
+                     amrflags_view_t const &          flags,
+                     RefineIndicatorData const &      refineParams)
     : m_helper(amr_hashmap, orchard_keys, userdata.block_size(), brick_sizes, is_brick_periodic)
     , m_amr_hashmap_device(amr_hashmap)
     , m_orchard_keys_device(orchard_keys)
@@ -109,7 +107,6 @@ public:
     , m_userdata(userdata)
     , m_flags(flags)
     , m_refineParams(refineParams)
-    , m_fm(fm)
   {}
 
   // ====================================================================
@@ -125,15 +122,14 @@ public:
   //!
   //! \sa ComputeRefineFlags
   static void
-  run(amr_hashmap_t            amr_hashmap,
-      orchard_key_view_t       orchard_keys,
-      int32_t                  local_num_octants,
-      brick_size_t<dim>        brick_sizes,
-      Kokkos::Array<bool, dim> is_brick_periodic,
-      DataArrayBlock_t         userdata,
-      amrflags_view_t          flags,
-      RefineIndicatorData      refineParams,
-      FieldMap<models::FiveEq> fm);
+  run(amr_hashmap_t const &            amr_hashmap,
+      orchard_key_view_t const &       orchard_keys,
+      int32_t                          local_num_octants,
+      brick_size_t<dim> const &        brick_sizes,
+      Kokkos::Array<bool, dim> const & is_brick_periodic,
+      DataArrayBlock_t const &         userdata,
+      amrflags_view_t const &          flags,
+      RefineIndicatorData const &      refineParams);
 
   // ==============================================================
   // ==============================================================
@@ -262,9 +258,6 @@ private:
 
   //! refine flags algorithm parameters
   RefineIndicatorData m_refineParams;
-
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
 
 }; // class ComputeRefineFlags
 

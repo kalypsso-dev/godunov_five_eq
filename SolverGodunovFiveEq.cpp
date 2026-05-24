@@ -70,7 +70,6 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
   , m_block_sizes(get_block_sizes<dim>(config_map))
   , m_brick_sizes(get_brick_sizes<dim>(config_map))
   , m_is_brick_periodic(get_brick_periodicity<dim>(config_map))
-  , m_five_eq(params.dimType)
   , m_hydro_settings(config_map)
   , m_eos(config_map)
   , m_amr_mesh(std::make_shared<AMRmesh<dim>>(par_env, config_map))
@@ -102,8 +101,6 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
                    m_godunov_impl_version);
     Kokkos::abort("Wrong value for input parameter hydro/implementation_version");
   }
-
-  constexpr auto nbvar = nbvar_five_eq<dim>();
 
   /*
    * memory pre-allocation.
@@ -147,6 +144,7 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
   /*
    * main data array memory allocation
    */
+  constexpr auto nbvar = models::FiveEq<dim>::nbvar();
 
   m_U = DataArrayBlock_t("U", m_block_sizes, nbvar, nbOcts);
   m_Uhost = DataArrayBlock_t::create_host_mirror_view(m_U);
@@ -393,17 +391,12 @@ SolverGodunovFiveEq<dim, device_t>::compute_dt_local()
   real_t dt;
   real_t invDt = ZERO_F;
 
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  // necessary to access user data
-  const auto & fm = m_five_eq.get_fieldmap();
-
   // call device functor - compute invDt
   ComputeDtFiveEqFunctor<dim, device_t>::apply(
     m_config_map,
     m_mesh_map->orchard_keys(),
     m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
     m_hydro_settings,
-    fm,
     m_block_sizes,
     m_U,
     m_eos,
@@ -636,7 +629,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
                                         0,
                                         num_octants,
                                         m_mesh_map->orchard_keys(),
-                                        m_five_eq.get_fieldmap()[models::FiveEq::ID0],
+                                        models::FiveEq<dim>::IAD0,
                                         "density0",
                                         m_config_map,
                                         m_par_env,
@@ -646,7 +639,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
                                         0,
                                         num_octants,
                                         m_mesh_map->orchard_keys(),
-                                        m_five_eq.get_fieldmap()[models::FiveEq::ID1],
+                                        models::FiveEq<dim>::IAD1,
                                         "density1",
                                         m_config_map,
                                         m_par_env,
@@ -656,7 +649,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
                                         0,
                                         num_octants,
                                         m_mesh_map->orchard_keys(),
-                                        m_five_eq.get_fieldmap()[models::FiveEq::IE],
+                                        models::FiveEq<dim>::IE,
                                         "total_energy",
                                         m_config_map,
                                         m_par_env,
@@ -666,7 +659,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
                                         0,
                                         num_octants,
                                         m_mesh_map->orchard_keys(),
-                                        m_five_eq.get_fieldmap()[models::FiveEq::IU],
+                                        models::FiveEq<dim>::IU,
                                         "rho_u",
                                         m_config_map,
                                         m_par_env,
@@ -676,7 +669,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
                                         0,
                                         num_octants,
                                         m_mesh_map->orchard_keys(),
-                                        m_five_eq.get_fieldmap()[models::FiveEq::IV],
+                                        models::FiveEq<dim>::IV,
                                         "rho_v",
                                         m_config_map,
                                         m_par_env,
@@ -688,7 +681,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
                                           0,
                                           num_octants,
                                           m_mesh_map->orchard_keys(),
-                                          m_five_eq.get_fieldmap()[models::FiveEq::IW],
+                                          models::FiveEq<dim>::IW,
                                           "rho_w",
                                           m_config_map,
                                           m_par_env,
@@ -742,12 +735,10 @@ auto
 SolverGodunovFiveEq<dim, device_t>::get_derived_quantity(DERIVED_QUANTITY derived_quantity)
   -> DataArrayBlock_t
 {
-  const auto & fm = m_five_eq.get_fieldmap();
-  const auto   local_num_quadrants =
+  const auto local_num_quadrants =
     static_cast<int64_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants());
 
   return ComputeDerivedQuantities<dim, device_t>::run(m_U,
-                                                      fm,
                                                       derived_quantity,
                                                       m_hydro_settings,
                                                       m_godunov_implem->m_eos,
@@ -792,13 +783,8 @@ SolverGodunovFiveEq<dim, device_t>::mixing_monitor_record()
 
   const auto num_octants = m_mesh_map->get_amr_mesh_info().local_num_quadrants();
 
-  m_mixing_monitor.record(m_U,
-                          m_mesh_map->orchard_keys(),
-                          0,
-                          num_octants,
-                          m_five_eq.get_fieldmap()[models::FiveEq::IPHI],
-                          m_t,
-                          m_par_env);
+  m_mixing_monitor.record(
+    m_U, m_mesh_map->orchard_keys(), 0, num_octants, models::FiveEq<dim>::IA0, m_t, m_par_env);
 
 } // SolverGodunovFiveEq<dim, device_t>::mixing_monitor_record
 
@@ -810,12 +796,6 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
 {
 
 #ifdef KALYPSSO_CORE_USE_HDF5
-
-  // retrieve available / allowed names: fieldManager, and field map (fm)
-  const auto & fm = m_five_eq.get_fieldmap();
-
-  // a map containing ID and name of the variable to write
-  const auto id2names = m_five_eq.get_id2names_map();
 
   // get list of variables to write ?
   const auto write_variables =
@@ -851,35 +831,48 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
     m_hdf5_writer->write_scalar_attribute("run", "iteration", m_iteration);
 
     // write user data (all enabled field)
-    for (auto & iter : id2names)
+    const auto nbvar_hydro = static_cast<int32_t>(models::FiveEq<dim>::HYDRO_VARID_COUNT);
+    for (int32_t i_var = 0; i_var < nbvar_hydro; ++i_var)
     {
-      auto varId = static_cast<typename models::FiveEq::VarId>(iter.first);
-
       // get variables string name
-      const auto varName = id2names.at(varId);
+      const auto varName = models::FiveEq<dim>::name(i_var);
 
-      if ((is_present(write_variables, varName) or should_do_checkpoint()) and varName != "rho_mix")
+      if ((is_present(write_variables, varName) or should_do_checkpoint()))
+      {
+        total_num_bytes +=
+          m_hdf5_writer->write_quadrant_attribute(m_Uhost, i_var, varName, 0, local_num_quadrants);
+      }
+    }
+
+    const auto nmat = m_config_map.getInteger("run", "nmat", 0);
+    for (int32_t i_mat = 0; i_mat < nmat; ++i_mat)
+    {
+      // volume fraction
+      const auto i_var_alpha = models::FiveEq<dim>::IA(i_mat);
+      const auto alpha_name = models::FiveEq<dim>::name(i_var_alpha);
+
+      if (is_present(write_variables, alpha_name) or should_do_checkpoint())
       {
         total_num_bytes += m_hdf5_writer->write_quadrant_attribute(
-          m_Uhost, fm[varId], varName, 0, local_num_quadrants);
+          m_Uhost, i_var_alpha, alpha_name, 0, local_num_quadrants);
       }
 
-    } // end for iter
+      // volume fraction
+      const auto i_var_alpha_rho = models::FiveEq<dim>::IAD(i_mat);
+      const auto alpha_rho_name = models::FiveEq<dim>::name(i_var_alpha_rho);
 
-    if (is_present(write_variables, std::string{ "rho_mix" }) or should_do_checkpoint())
-    {
-      const auto rho_mix_h = compute_mixture_density<dim, HostDevice>(m_Uhost, fm);
-
-      total_num_bytes +=
-        m_hdf5_writer->write_quadrant_attribute(rho_mix_h, 0, "rho_mix", 0, local_num_quadrants);
-    }
+      if (is_present(write_variables, alpha_rho_name) or should_do_checkpoint())
+      {
+        total_num_bytes += m_hdf5_writer->write_quadrant_attribute(
+          m_Uhost, i_var_alpha_rho, alpha_rho_name, 0, local_num_quadrants);
+      }
+    } // end for i_mat
 
     if (!pure_checkpoint)
     {
       if (is_present(write_variables, std::string{ "rho_mix_schlieren" }))
       {
-        const auto rho_mix_d = compute_mixture_density<dim>(m_U, fm);
-        auto       rho_mix_schlieren_d = core::ComputeSchlieren<dim, device_t>::run(
+        auto rho_mix_schlieren_d = core::ComputeSchlieren<dim, device_t>::run(
           m_config_map,
           m_par_env,
           m_mesh_map->hashmap(),
@@ -888,7 +881,7 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
           m_block_sizes,
           m_brick_sizes,
           m_is_brick_periodic,
-          rho_mix_d);
+          m_U);
         auto rho_mix_schlieren_h =
           DataArrayBlock_t::create_host_mirror_view_and_copy(rho_mix_schlieren_d);
 
@@ -1036,7 +1029,6 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t data
                                                m_mesh_map->get_amr_mesh_info(),
                                                m_mesh_map->orchard_keys(),
                                                m_mesh_map->hashmap(),
-                                               m_five_eq.get_fieldmap(),
                                                m_config_map,
                                                m_par_env);
 
@@ -1048,13 +1040,10 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t data
     if (shock_bubble_params.use_inlet_bc)
     {
 
-      const auto & fm = m_five_eq.get_fieldmap();
-
       FillOutsideShockBubble<dim, device_t>::apply(data,
                                                    m_mesh_map->get_amr_mesh_info(),
                                                    m_mesh_map->orchard_keys(),
                                                    m_mesh_map->hashmap(),
-                                                   fm,
                                                    m_config_map);
     }
   }
@@ -1099,14 +1088,12 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
                                          ivar_to_refine,
                                          epsilon_lohner };
 
-      const auto & fm = m_five_eq.get_fieldmap();
-
       const auto local_num_quadrants =
         static_cast<int64_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants());
 
       // compute derived quantity
       const auto derived_quantity = ComputeDerivedQuantities<dim, device_t>::run(
-        m_U, fm, name, m_hydro_settings, m_eos, 0, local_num_quadrants, m_par_env);
+        m_U, name, m_hydro_settings, m_eos, 0, local_num_quadrants, m_par_env);
 
       ::kalypsso::ComputeRefineFlags<dim, device_t>::run(
         m_mesh_map->hashmap(),
@@ -1129,8 +1116,6 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
                                          ivar_to_refine,
                                          epsilon_lohner };
 
-      const auto & fm = m_five_eq.get_fieldmap();
-
       ComputeRefineFlags<dim, device_t>::run(m_mesh_map->hashmap(),
                                              m_mesh_map->orchard_keys(),
                                              m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
@@ -1138,24 +1123,20 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
                                              m_is_brick_periodic,
                                              m_U,
                                              m_amr_context.m_amrflags_d,
-                                             refine_params,
-                                             fm);
+                                             refine_params);
     }
     else
     {
       // retrieve which variable is used to compute refine criterion
-      int const ivar_to_refine = [this, name]() {
-        // a map containing ID and name of each variable of the model (density, ...)
-        auto const id2names = m_five_eq.get_id2names_map();
-        for (auto & iter : id2names)
+      int const ivar_to_refine = [name]() {
+        for (int32_t i_var = 0; i_var < static_cast<int32_t>(models::FiveEq<dim>::nbvar()); ++i_var)
         {
-          auto const varId = static_cast<typename models::FiveEq::VarId>(iter.first);
-          auto const varName = id2names.at(varId);
+          auto const varName = models::FiveEq<dim>::name(i_var);
           if (varName == name)
-            return varId;
+            return i_var;
         }
         // default value
-        return models::FiveEq::ID;
+        return static_cast<typename models::FiveEq<dim>::Id_t>(models::FiveEq<dim>::ID);
       }();
 
       RefineIndicatorData refine_params{ static_cast<int>(m_params.level_min),

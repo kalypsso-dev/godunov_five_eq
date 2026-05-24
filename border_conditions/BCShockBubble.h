@@ -75,32 +75,10 @@ struct BCShockBubble
   KOKKOS_FUNCTION real_t
   operator()([[maybe_unused]] real_t x, [[maybe_unused]] real_t y, int var) const
   {
-    if (var == models::FiveEq::ID0)
-    {
-      return m_inflow[models::FiveEq::ID0];
-    }
-    else if (var == models::FiveEq::ID1)
-    {
-      return m_inflow[models::FiveEq::ID1];
-    }
-    else if (var == models::FiveEq::IPHI)
-    {
-      return m_inflow[models::FiveEq::IPHI];
-    }
-    else if (var == models::FiveEq::IE)
-    {
-      return m_inflow[models::FiveEq::IE];
-    }
-    else if (var == models::FiveEq::IU)
-    {
-      return m_inflow[models::FiveEq::IU];
-    }
-    else if (var == models::FiveEq::IV)
-    {
-      return m_inflow[models::FiveEq::IV];
-    }
+    if (var >= 0 and var < models::FiveEq<dim>::nbvar())
+      return m_inflow[var];
 
-    return 0.0;
+    return ZERO_F;
   } // operator() - 2d
 
   //! return conservative variables - 3d
@@ -110,36 +88,10 @@ struct BCShockBubble
              [[maybe_unused]] real_t z,
              int                     var) const
   {
-    if (var == models::FiveEq::ID0)
-    {
-      return m_inflow[models::FiveEq::ID0];
-    }
-    else if (var == models::FiveEq::ID1)
-    {
-      return m_inflow[models::FiveEq::ID1];
-    }
-    else if (var == models::FiveEq::IPHI)
-    {
-      return m_inflow[models::FiveEq::IPHI];
-    }
-    else if (var == models::FiveEq::IE)
-    {
-      return m_inflow[models::FiveEq::IE];
-    }
-    else if (var == models::FiveEq::IU)
-    {
-      return m_inflow[models::FiveEq::IU];
-    }
-    else if (var == models::FiveEq::IV)
-    {
-      return m_inflow[models::FiveEq::IV];
-    }
-    else if (var == models::FiveEq::IW)
-    {
-      return m_inflow[models::FiveEq::IW];
-    }
+    if (var >= 0 and var < models::FiveEq<dim>::nbvar())
+      return m_inflow[var];
 
-    return 0.0;
+    return ZERO_F;
   } // operator() - 3d
 
 }; // struct BCShockBubble
@@ -179,7 +131,7 @@ public:
   using DataArrayBlock_t = DataArrayBlock<dim, real_t, device_t>;
 
   // makes enum FiveEq::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   // ==============================================================
   // ==============================================================
@@ -193,12 +145,11 @@ public:
    * \param[in] config_map application parameter map
    */
   static void
-  apply(DataArrayBlock_t const &         userdata,
-        AMRMeshInfo const &              amr_mesh_info,
-        orchard_key_view_t const &       orchard_keys,
-        amr_hashmap_t const &            amr_hashmap,
-        FieldMap<models::FiveEq> const & fm,
-        ConfigMap const &                config_map);
+  apply(DataArrayBlock_t const &   userdata,
+        AMRMeshInfo const &        amr_mesh_info,
+        orchard_key_view_t const & orchard_keys,
+        amr_hashmap_t const &      amr_hashmap,
+        ConfigMap const &          config_map);
 
   // ==============================================================
   // ==============================================================
@@ -221,12 +172,11 @@ private:
    * \param[in] config_map application parameter map
    *
    */
-  FillOutsideShockBubble(DataArrayBlock_t const &         userdata,
-                         AMRMeshInfo const &              amr_mesh_info,
-                         orchard_key_view_t const &       orchard_keys,
-                         amr_hashmap_t const &            amr_hashmap,
-                         FieldMap<models::FiveEq> const & fm,
-                         ConfigMap const &                config_map);
+  FillOutsideShockBubble(DataArrayBlock_t const &   userdata,
+                         AMRMeshInfo const &        amr_mesh_info,
+                         orchard_key_view_t const & orchard_keys,
+                         amr_hashmap_t const &      amr_hashmap,
+                         ConfigMap const &          config_map);
 
   //! a block data array (no ghosts, sizes= bx,by,bz)
   DataArrayBlock_t m_userdata;
@@ -242,8 +192,6 @@ private:
   //! (owned quadrants and ghost quadrants)
   amr_hashmap_t m_amr_hashmap_device;
 
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
 
   //! p4est brick connectivity sizes
   const brick_size_t<dim> m_brick_size;
@@ -260,7 +208,7 @@ private:
   //! ShockBubble parameters
   BCShockBubble<dim> m_bc_shock_bubble;
 
-}; // class FillOutsideCellFunctor
+}; // class FillOutsideShockBubble
 
 // explicit template instantiation
 extern template class FillOutsideShockBubble<2, kalypsso::DefaultDevice>;

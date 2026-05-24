@@ -10,7 +10,6 @@
 
 #include <kalypsso/core/kokkos_shared.h>
 #include <kalypsso/core/kalypsso_data_container.h> // for DataArrayBlock
-#include <kalypsso/core/FieldMap.h>
 #include <kalypsso/core/orchard_key_base.h>
 
 // hydro utils (conservative versus primitive variable, equation of state, ...)
@@ -53,9 +52,6 @@ public:
   //! our kokkos execution space
   using exec_space = typename device_t::execution_space;
 
-  // makes enum Hydro::VarId available
-  using FiveEq = models::FiveEq;
-
   //! global cell index
   using index_t = int32_t;
 
@@ -68,9 +64,6 @@ private:
 
   //! hydro parameters
   HydroSettings m_hydro_settings;
-
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
 
   //! block sizes
   block_size_t<dim> m_block_sizes;
@@ -94,16 +87,15 @@ private:
   const UniformGravityField<dim> m_gravity_field;
 
 public:
-  ComputeDtFiveEqFunctor(ConfigMap const &        config_map,
-                         orchard_key_view_t       orchard_keys,
-                         int32_t                  local_num_octants,
-                         HydroSettings            hydro_settings,
-                         FieldMap<models::FiveEq> fm,
-                         block_size_t<dim>        block_sizes,
-                         DataArrayBlock_t         Udata,
-                         EosWrapper_t<device_t>   eos,
-                         bool                     gravity_enabled,
-                         UniformGravityField<dim> gravity_field);
+  ComputeDtFiveEqFunctor(ConfigMap const &              config_map,
+                         orchard_key_view_t const &     orchard_keys,
+                         int32_t                        local_num_octants,
+                         HydroSettings const &          hydro_settings,
+                         block_size_t<dim> const &      block_sizes,
+                         DataArrayBlock_t const &       Udata,
+                         EosWrapper_t<device_t> const & eos,
+                         bool                           gravity_enabled,
+                         UniformGravityField<dim>       gravity_field);
 
   // ====================================================================
   // ====================================================================
@@ -115,20 +107,18 @@ public:
   //! \param[in] hydro_settings contains hydrodynamics parameter used to perform conservative to
   //! primitive
   //!            variable conversion (equation of state)
-  //! \param[in] fm is the field map (TODO refactor this)
   //! \param[in] block_sizes is an array the cartesian block sizes
   //! \param[in,out] invDt is the inverse of time step, the output of this functor
   //!
   static void
-  apply(ConfigMap const &        config_map,
-        orchard_key_view_t       orchard_keys,
-        int32_t                  local_num_octants,
-        HydroSettings            hydro_settings,
-        FieldMap<models::FiveEq> fm,
-        block_size_t<dim>        block_sizes,
-        DataArrayBlock_t         Udata,
-        EosWrapper_t<device_t>   eos,
-        real_t &                 invDt);
+  apply(ConfigMap const &              config_map,
+        orchard_key_view_t const &     orchard_keys,
+        int32_t                        local_num_octants,
+        HydroSettings const &          hydro_settings,
+        block_size_t<dim> const &      block_sizes,
+        DataArrayBlock_t const &       Udata,
+        EosWrapper_t<device_t> const & eos,
+        real_t &                       invDt);
 
   /**
    * Update reduced variable when visiting a cell.

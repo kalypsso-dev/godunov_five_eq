@@ -26,15 +26,12 @@ namespace godunov_five_eq
  * Compute mixture density.
  *
  * \param[in] Conservative variables array
- * \param[in] field map
  *
  * \tparam dim is dimension (2 or 3)
- * \tparam fm is field map
  */
 template <size_t dim, typename device_t>
 auto
-compute_mixture_density(DataArrayBlock<dim, real_t, device_t> U,
-                        FieldMap<models::FiveEq> const &      fm)
+compute_mixture_density(DataArrayBlock<dim, real_t, device_t> U)
   -> DataArrayBlock<dim, real_t, device_t>
 {
   using ExecutionSpace = typename device_t::execution_space;
@@ -50,8 +47,8 @@ compute_mixture_density(DataArrayBlock<dim, real_t, device_t> U,
     KOKKOS_LAMBDA(int32_t global_index) {
       const auto iOct = global_index / nbCells;
       const auto cell_index = global_index - iOct * nbCells;
-      res(cell_index, 0, iOct) =
-        U(cell_index, fm[models::FiveEq::ID0], iOct) + U(cell_index, fm[models::FiveEq::ID1], iOct);
+      res(cell_index, 0, iOct) = U(cell_index, models::FiveEq<dim>::IAD0, iOct) +
+                                 U(cell_index, models::FiveEq<dim>::IAD1, iOct);
     });
 
   return res;

@@ -93,7 +93,6 @@ public:
 #ifdef KALYPSSO_CORE_USE_MPI
     , m_mesh_ghosts_exchanger(mesh_ghosts_exchanger)
 #endif // KALYPSSO_CORE_USE_MPI
-    , m_five_eq(params.dimType)
     , m_eos(config_map)
     , m_thinc_params(config_map)
     , m_sifd(par_env, config_map, amr_mesh, mesh_map)
@@ -142,8 +141,6 @@ public:
   {
 
     KALYPSSO_PROFILING_REGION(m_profiling_mgr, NUM_SCHEME_GRAVITY);
-
-    // const auto & fm = this->m_five_eq.get_fieldmap();
 
     KALYPSSO_WARN("Please implement gravity for FiveEq !");
     // AddGravitySourceTerm<dim, device_t>::apply(
@@ -198,9 +195,6 @@ public:
   //! MPI communications to exchange ghost block userdata
   MeshGhostsExchanger<dim, real_t, device_t> & m_mesh_ghosts_exchanger;
 #endif // KALYPSSO_CORE_USE_MPI
-
-  //! model
-  godunov_five_eq::models::FiveEq m_five_eq;
 
   //! Equation of state wrapper
   EosWrapper_t<device_t> m_eos;

@@ -97,7 +97,7 @@ public:
   using DataArrayBlock_t = DataArrayBlock<dim, real_t, device_t>;
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   using bc_array_t = BorderConditionsConfig<BC_HYDRO>::bc_array_t<dim>;
 
@@ -113,13 +113,12 @@ public:
    * \param[in] config_map application parameter map
    */
   static void
-  apply(DataArrayBlock_t const &         userdata,
-        AMRMeshInfo const &              amr_mesh_info,
-        orchard_key_view_t const &       orchard_keys,
-        amr_hashmap_t const &            amr_hashmap,
-        FieldMap<models::FiveEq> const & fm,
-        ConfigMap const &                config_map,
-        ParallelEnv const &              par_env);
+  apply(DataArrayBlock_t const &   userdata,
+        AMRMeshInfo const &        amr_mesh_info,
+        orchard_key_view_t const & orchard_keys,
+        amr_hashmap_t const &      amr_hashmap,
+        ConfigMap const &          config_map,
+        ParallelEnv const &        par_env);
 
   // ==============================================================
   // ==============================================================
@@ -164,7 +163,6 @@ private:
    * \param[in] orchard_keys array of orchard key ordered by Morton order
    * \param[in] amr_hashmap unordered map from orchard key to memory index for owned and ghost
    *            quadrants
-   * \param fm Hydro variables to index mapper.
    * \param config_map Inputted config map.
    * \param par_env Parallel environment.
    *
@@ -172,13 +170,12 @@ private:
    * gradient (default).
    *
    */
-  FillOutsideCellFunctor(DataArrayBlock_t const &         userdata,
-                         AMRMeshInfo const &              amr_mesh_info,
-                         orchard_key_view_t const &       orchard_keys,
-                         amr_hashmap_t const &            amr_hashmap,
-                         FieldMap<models::FiveEq> const & fm,
-                         ConfigMap const &                config_map,
-                         ParallelEnv const &              par_env);
+  FillOutsideCellFunctor(DataArrayBlock_t const &   userdata,
+                         AMRMeshInfo const &        amr_mesh_info,
+                         orchard_key_view_t const & orchard_keys,
+                         amr_hashmap_t const &      amr_hashmap,
+                         ConfigMap const &          config_map,
+                         ParallelEnv const &        par_env);
 
   //! a block data array (no ghosts, sizes= bx,by,bz)
   DataArrayBlock_t m_userdata;
@@ -193,9 +190,6 @@ private:
   //! AMR unordered map which maps orchard keys to quadrant number for all key in the mesh
   //! (owned quadrants and ghost quadrants)
   amr_hashmap_t m_amr_hashmap_device;
-
-  //! Variables to index mapping
-  FieldMap<models::FiveEq> m_fm;
 
   //! p4est brick connectivity sizes
   const brick_size_t<dim> m_brick_size;

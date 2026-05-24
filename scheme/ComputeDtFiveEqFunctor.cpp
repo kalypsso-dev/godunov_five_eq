@@ -6,7 +6,7 @@
  * \file ComputeDtFiveEqFunctor.cpp
  */
 #include <godunov_five_eq/scheme/ComputeDtFiveEqFunctor.h>
-
+#include <godunov_five_eq/common.h>
 #include <kalypsso/core/brick_utils.h>
 #include <kalypsso/core/orchard_key_utils.h>
 
@@ -19,20 +19,18 @@ namespace godunov_five_eq
 // ====================================================================
 template <size_t dim, typename device_t>
 ComputeDtFiveEqFunctor<dim, device_t>::ComputeDtFiveEqFunctor(
-  ConfigMap const &        config_map,
-  orchard_key_view_t       orchard_keys,
-  int32_t                  local_num_octants,
-  HydroSettings            hydro_settings,
-  FieldMap<models::FiveEq> fm,
-  block_size_t<dim>        block_sizes,
-  DataArrayBlock_t         Udata,
-  EosWrapper_t<device_t>   eos,
-  bool                     gravity_enabled,
-  UniformGravityField<dim> gravity_field)
+  ConfigMap const &              config_map,
+  orchard_key_view_t const &     orchard_keys,
+  int32_t                        local_num_octants,
+  HydroSettings const &          hydro_settings,
+  block_size_t<dim> const &      block_sizes,
+  DataArrayBlock_t const &       Udata,
+  EosWrapper_t<device_t> const & eos,
+  bool                           gravity_enabled,
+  UniformGravityField<dim>       gravity_field)
   : m_orchard_keys(orchard_keys)
   , m_local_num_octants(local_num_octants)
   , m_hydro_settings(hydro_settings)
-  , m_fm(fm)
   , m_block_sizes(block_sizes)
   , m_nbCellsPerLeaf(Udata.num_cells())
   , m_scaling_factor(get_scaling_factor(config_map))
@@ -46,15 +44,14 @@ ComputeDtFiveEqFunctor<dim, device_t>::ComputeDtFiveEqFunctor(
 // ====================================================================
 template <size_t dim, typename device_t>
 void
-ComputeDtFiveEqFunctor<dim, device_t>::apply(ConfigMap const &        config_map,
-                                             orchard_key_view_t       orchard_keys,
-                                             int32_t                  local_num_octants,
-                                             HydroSettings            hydro_settings,
-                                             FieldMap<models::FiveEq> fm,
-                                             block_size_t<dim>        block_sizes,
-                                             DataArrayBlock_t         Udata,
-                                             EosWrapper_t<device_t>   eos,
-                                             real_t &                 invDt)
+ComputeDtFiveEqFunctor<dim, device_t>::apply(ConfigMap const &              config_map,
+                                             orchard_key_view_t const &     orchard_keys,
+                                             int32_t                        local_num_octants,
+                                             HydroSettings const &          hydro_settings,
+                                             block_size_t<dim> const &      block_sizes,
+                                             DataArrayBlock_t const &       Udata,
+                                             EosWrapper_t<device_t> const & eos,
+                                             real_t &                       invDt)
 {
   const auto gravity_enabled = config_map.getBool("gravity", "enabled", false);
   const auto gravity_field = get_uniform_gravity_vector<dim>(config_map);
@@ -63,7 +60,6 @@ ComputeDtFiveEqFunctor<dim, device_t>::apply(ConfigMap const &        config_map
                                  orchard_keys,
                                  local_num_octants,
                                  hydro_settings,
-                                 fm,
                                  block_sizes,
                                  Udata,
                                  eos,
@@ -92,35 +88,41 @@ ComputeDtFiveEqFunctor<dim, device_t>::compute_cfl(int32_t const & iOct,
                                                    int32_t const & cell_index,
                                                    real_t &        invDt) const
 {
-  HydroState<dim>            uLoc; // conservative variables in current cell
-  HydroState<dim>            qLoc; // primitive    variables in current cell
-  Kokkos::Array<real_t, dim> v;    // velocity
-
   // get block level
   const auto level = orchard_key_t<dim>::level(m_orchard_keys(iOct));
 
   // compute cell size (assume dx=dy=dz, i.e. block_sizes are the same along all directions)
   const auto dx = compute_cell_length<dim>(level, m_block_sizes[IX]) * m_scaling_factor;
 
-  // get conservative variable in current cell
-  uLoc[FiveEq::ID0] = m_Udata(cell_index, m_fm[FiveEq::ID0], iOct);
-  uLoc[FiveEq::ID1] = m_Udata(cell_index, m_fm[FiveEq::ID1], iOct);
-  uLoc[FiveEq::ID] = uLoc[FiveEq::ID0] + uLoc[FiveEq::ID1];
-  uLoc[FiveEq::IPHI] = m_Udata(cell_index, m_fm[FiveEq::IPHI], iOct);
-  uLoc[FiveEq::IE] = m_Udata(cell_index, m_fm[FiveEq::IE], iOct);
-  uLoc[FiveEq::IU] = m_Udata(cell_index, m_fm[FiveEq::IU], iOct);
-  uLoc[FiveEq::IV] = m_Udata(cell_index, m_fm[FiveEq::IV], iOct);
-  if constexpr (dim == 3)
-    uLoc[FiveEq::IW] = m_Udata(cell_index, m_fm[FiveEq::IW], iOct);
+  using Hydro = models::FiveEq<dim>;
+
+  // primitive    variables in current cell
+  HydroState<dim> qLoc;
+
+  // conservative variables in current cell
+  HydroState<dim> uLoc = get_conservative_variables(m_Udata, cell_index, iOct);
+
+  // uLoc[Hydro::ID] = m_Udata(cell_index, Hydro::ID, iOct);
+  // uLoc[Hydro::IE] = m_Udata(cell_index, Hydro::IE, iOct);
+  // uLoc[Hydro::IU] = m_Udata(cell_index, Hydro::IU, iOct);
+  // uLoc[Hydro::IV] = m_Udata(cell_index, Hydro::IV, iOct);
+  // if constexpr (dim == 3)
+  //   uLoc[Hydro::IW] = m_Udata(cell_index, Hydro::IW, iOct);
+  // uLoc[Hydro::IA0] = m_Udata(cell_index, Hydro::IA0, iOct);
+  // uLoc[Hydro::IA1] = ONE_F - m_Udata(cell_index, Hydro::IA0, iOct);
+  // uLoc[Hydro::IAD0] = m_Udata(cell_index, Hydro::IAD0, iOct);
+  // uLoc[Hydro::IAD1] = m_Udata(cell_index, Hydro::IAD1, iOct);
 
   // get primitive variables and mixture speed of sound in current cell
-  const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  const auto c = models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
+
+  Kokkos::Array<real_t, dim> v; // velocity
 
   // compute velocity
-  v[IX] = c + fabs(qLoc[FiveEq::IU]);
-  v[IY] = c + fabs(qLoc[FiveEq::IV]);
+  v[IX] = c + fabs(qLoc[Hydro::IU]);
+  v[IY] = c + fabs(qLoc[Hydro::IV]);
   if constexpr (dim == 3)
-    v[IZ] = c + fabs(qLoc[FiveEq::IW]);
+    v[IZ] = c + fabs(qLoc[Hydro::IW]);
 
   // update cfl
   if constexpr (dim == 2)
@@ -148,26 +150,28 @@ ComputeDtFiveEqFunctor<dim, device_t>::compute_cfl_with_gravity(int32_t const & 
   // compute cell size (assume dx=dy=dz, i.e. block_sizes are the same along all directions)
   const auto dx = compute_cell_length<dim>(level, m_block_sizes[IX]) * m_scaling_factor;
 
+  using Hydro = models::FiveEq<dim>;
+
   // get conservative variable in current cell
-  uLoc[FiveEq::ID0] = m_Udata(cell_index, m_fm[FiveEq::ID0], iOct);
-  uLoc[FiveEq::ID1] = m_Udata(cell_index, m_fm[FiveEq::ID1], iOct);
-  uLoc[FiveEq::ID] = uLoc[FiveEq::ID0] + uLoc[FiveEq::ID1];
-  uLoc[FiveEq::IPHI] = m_Udata(cell_index, m_fm[FiveEq::IPHI], iOct);
-  uLoc[FiveEq::IE] = m_Udata(cell_index, m_fm[FiveEq::IE], iOct);
-  uLoc[FiveEq::IU] = m_Udata(cell_index, m_fm[FiveEq::IU], iOct);
-  uLoc[FiveEq::IV] = m_Udata(cell_index, m_fm[FiveEq::IV], iOct);
+  uLoc[Hydro::ID] = m_Udata(cell_index, Hydro::ID, iOct);
+  uLoc[Hydro::IE] = m_Udata(cell_index, Hydro::IE, iOct);
+  uLoc[Hydro::IU] = m_Udata(cell_index, Hydro::IU, iOct);
+  uLoc[Hydro::IV] = m_Udata(cell_index, Hydro::IV, iOct);
   if constexpr (dim == 3)
-    uLoc[FiveEq::IW] = m_Udata(cell_index, m_fm[FiveEq::IW], iOct);
+    uLoc[Hydro::IW] = m_Udata(cell_index, Hydro::IW, iOct);
+  uLoc[Hydro::IA0] = m_Udata(cell_index, Hydro::IA0, iOct);
+  uLoc[Hydro::IAD0] = m_Udata(cell_index, Hydro::IAD0, iOct);
+  uLoc[Hydro::IAD1] = m_Udata(cell_index, Hydro::IAD1, iOct);
 
   // get primitive variables and mixture speed of sound in current cell
-  const auto c = models::computePrimitives(uLoc, qLoc, m_hydro_settings, m_eos);
+  const auto c = models::computePrimitives<dim>(uLoc, qLoc, m_hydro_settings, m_eos);
 
   real_t velocity = ZERO_F;
-  velocity += c + fabs(qLoc[FiveEq::IU]);
-  velocity += c + fabs(qLoc[FiveEq::IV]);
+  velocity += c + fabs(qLoc[Hydro::IU]);
+  velocity += c + fabs(qLoc[Hydro::IV]);
   if constexpr (dim == 3)
   {
-    velocity += c + fabs(qLoc[FiveEq::IW]);
+    velocity += c + fabs(qLoc[Hydro::IW]);
   }
 
   /* Due to the gravitational acceleration, the CFL condition

@@ -69,7 +69,7 @@ public:
   using DataArrayGhostedBlock_t = DataArrayGhostedBlock<dim, real_t, device_t>;
 
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   template <size_t _dim>
   using offsets_t = coord_t<_dim, real_t>;
@@ -99,8 +99,8 @@ private:
   //! fluxes - owned and ghost quadrants
   DataArrayBlock_t m_Fluxes;
 
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
+  //! star velocity (output)
+  DataArrayBlock_t m_u_star;
 
   //! flux direction (IX, IY or IZ)
   int m_direction;
@@ -130,18 +130,18 @@ public:
    * \param[in]  time step (as computed by CFL condition)
    *
    */
-  ReadFluxesAndConservativeUpdateFunctor(ConfigMap const &          config_map,
-                                         StencilHelper_t            stencil_helper,
-                                         orchard_key_view_t         orchard_keys,
-                                         conformal_status_view_type conformal_status,
-                                         AMRMeshInfo                amr_mesh_info,
-                                         DataArrayBlock_t           u_in,
-                                         DataArrayBlock_t           u_out,
-                                         DataArrayBlock_t           fluxes,
-                                         FieldMap<models::FiveEq>   fm,
-                                         int                        direction,
-                                         HydroSettings              hydro_settings,
-                                         real_t                     dt);
+  ReadFluxesAndConservativeUpdateFunctor(ConfigMap const &                  config_map,
+                                         StencilHelper_t const &            stencil_helper,
+                                         orchard_key_view_t const &         orchard_keys,
+                                         conformal_status_view_type const & conformal_status,
+                                         AMRMeshInfo const &                amr_mesh_info,
+                                         DataArrayBlock_t const &           u_in,
+                                         DataArrayBlock_t const &           u_out,
+                                         DataArrayBlock_t const &           fluxes,
+                                         DataArrayBlock_t const &           u_star,
+                                         int                                direction,
+                                         HydroSettings const &              hydro_settings,
+                                         real_t                             dt);
 
   // ==============================================================
   // ==============================================================
@@ -149,20 +149,20 @@ public:
   //!
   //! Use this member when computing primitive in a group of octant
   static void
-  apply(ConfigMap const &          config_map,
-        amr_hashmap_t              amr_hashmap,
-        orchard_key_view_t         orchard_keys,
-        conformal_status_view_type conformal_status,
-        AMRMeshInfo                amr_mesh_info,
-        DataArrayBlock_t           Uin,
-        DataArrayBlock_t           Uout,
-        DataArrayBlock_t           fluxes,
-        FieldMap<models::FiveEq>   fm,
-        int                        direction,
-        brick_size_t<dim>          brick_sizes,
-        Kokkos::Array<bool, dim>   is_brick_periodic,
-        HydroSettings              hydro_settings,
-        real_t                     dt);
+  apply(ConfigMap const &                  config_map,
+        amr_hashmap_t const &              amr_hashmap,
+        orchard_key_view_t const &         orchard_keys,
+        conformal_status_view_type const & conformal_status,
+        AMRMeshInfo const &                amr_mesh_info,
+        DataArrayBlock_t const &           Uin,
+        DataArrayBlock_t const &           Uout,
+        DataArrayBlock_t const &           fluxes,
+        DataArrayBlock_t const &           u_star,
+        int                                direction,
+        brick_size_t<dim> const &          brick_sizes,
+        Kokkos::Array<bool, dim> const &   is_brick_periodic,
+        HydroSettings const &              hydro_settings,
+        real_t                             dt);
 
   // ====================================================================
   // ====================================================================
@@ -191,12 +191,12 @@ public:
 
     HydroState<2> flux;
 
-    flux[Hydro::ID0] = m_Fluxes(i, j, m_fm[Hydro::ID0], iOct);
-    flux[Hydro::ID1] = m_Fluxes(i, j, m_fm[Hydro::ID1], iOct);
-    flux[Hydro::IPHI] = m_Fluxes(i, j, m_fm[Hydro::IPHI], iOct);
-    flux[Hydro::IP] = m_Fluxes(i, j, m_fm[Hydro::IP], iOct);
-    flux[Hydro::IU] = m_Fluxes(i, j, m_fm[Hydro::IU], iOct);
-    flux[Hydro::IV] = m_Fluxes(i, j, m_fm[Hydro::IV], iOct);
+    flux[Hydro::IAD0] = m_Fluxes(i, j, Hydro::IAD0, iOct);
+    flux[Hydro::IAD1] = m_Fluxes(i, j, Hydro::IAD1, iOct);
+    flux[Hydro::IA0] = m_Fluxes(i, j, Hydro::IA0, iOct);
+    flux[Hydro::IP] = m_Fluxes(i, j, Hydro::IP, iOct);
+    flux[Hydro::IU] = m_Fluxes(i, j, Hydro::IU, iOct);
+    flux[Hydro::IV] = m_Fluxes(i, j, Hydro::IV, iOct);
 
     return flux;
 
@@ -218,13 +218,13 @@ public:
 
     HydroState<3> flux;
 
-    flux[Hydro::ID0] = m_Fluxes(i, j, k, m_fm[Hydro::ID0], iOct);
-    flux[Hydro::ID1] = m_Fluxes(i, j, k, m_fm[Hydro::ID1], iOct);
-    flux[Hydro::IPHI] = m_Fluxes(i, j, k, m_fm[Hydro::IPHI], iOct);
-    flux[Hydro::IP] = m_Fluxes(i, j, k, m_fm[Hydro::IP], iOct);
-    flux[Hydro::IU] = m_Fluxes(i, j, k, m_fm[Hydro::IU], iOct);
-    flux[Hydro::IV] = m_Fluxes(i, j, k, m_fm[Hydro::IV], iOct);
-    flux[Hydro::IW] = m_Fluxes(i, j, k, m_fm[Hydro::IW], iOct);
+    flux[Hydro::IAD0] = m_Fluxes(i, j, k, Hydro::IAD0, iOct);
+    flux[Hydro::IAD1] = m_Fluxes(i, j, k, Hydro::IAD1, iOct);
+    flux[Hydro::IA0] = m_Fluxes(i, j, k, Hydro::IA0, iOct);
+    flux[Hydro::IP] = m_Fluxes(i, j, k, Hydro::IP, iOct);
+    flux[Hydro::IU] = m_Fluxes(i, j, k, Hydro::IU, iOct);
+    flux[Hydro::IV] = m_Fluxes(i, j, k, Hydro::IV, iOct);
+    flux[Hydro::IW] = m_Fluxes(i, j, k, Hydro::IW, iOct);
 
     return flux;
 
@@ -253,23 +253,23 @@ public:
 
     HydroState<dim> flux;
 
-    flux[Hydro::ID0] = m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::ID0], m_Fluxes, use_right_flux);
-    flux[Hydro::ID1] = m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::ID1], m_Fluxes, use_right_flux);
-    flux[Hydro::IPHI] = m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::IPHI], m_Fluxes, use_right_flux);
+    flux[Hydro::IAD0] = m_stencil_helper.compute_face_siblings_sum(
+      cell_loc_neigh, Hydro::IAD0, m_Fluxes, use_right_flux);
+    flux[Hydro::IAD1] = m_stencil_helper.compute_face_siblings_sum(
+      cell_loc_neigh, Hydro::IAD1, m_Fluxes, use_right_flux);
+    flux[Hydro::IA0] = m_stencil_helper.compute_face_siblings_sum(
+      cell_loc_neigh, Hydro::IA0, m_Fluxes, use_right_flux);
     flux[Hydro::IP] = m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::IP], m_Fluxes, use_right_flux);
+      cell_loc_neigh, Hydro::IP, m_Fluxes, use_right_flux);
     flux[Hydro::IU] = m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::IU], m_Fluxes, use_right_flux);
+      cell_loc_neigh, Hydro::IU, m_Fluxes, use_right_flux);
     flux[Hydro::IV] = m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::IV], m_Fluxes, use_right_flux);
+      cell_loc_neigh, Hydro::IV, m_Fluxes, use_right_flux);
 
     if constexpr (dim == 3)
     {
       flux[Hydro::IW] = m_stencil_helper.compute_face_siblings_sum(
-        cell_loc_neigh, m_fm[Hydro::IW], m_Fluxes, use_right_flux);
+        cell_loc_neigh, Hydro::IW, m_Fluxes, use_right_flux);
     }
 
     return flux;
@@ -288,8 +288,7 @@ public:
     const CellLocation_t cell_loc{ coords, key_cur, iOct_cur, false };
     const auto           cell_loc_neigh = m_stencil_helper.getNeighLocFinerNearer(cell_loc, shift);
 
-    return m_stencil_helper.compute_face_siblings_sum(
-      cell_loc_neigh, m_fm[Hydro::IUSTAR], m_Fluxes, use_right_flux);
+    return m_stencil_helper.compute_face_siblings_sum(cell_loc_neigh, 0, m_u_star, use_right_flux);
 
   } // get_ustar_flux_from_fine_neighbor
 
@@ -309,23 +308,23 @@ public:
   {
     constexpr real_t eps = KALYPSSO_NUM(1e-12);
 
-    m_Uout(i, j, m_fm[Hydro::ID0], iOct) += flux[Hydro::ID0];
-    if (m_Uout(i, j, m_fm[Hydro::ID0], iOct) < eps)
-      m_Uout(i, j, m_fm[Hydro::ID0], iOct) = ZERO_F;
+    m_Uout(i, j, Hydro::IAD0, iOct) += flux[Hydro::IAD0];
+    if (m_Uout(i, j, Hydro::IAD0, iOct) < eps)
+      m_Uout(i, j, Hydro::IAD0, iOct) = ZERO_F;
 
-    m_Uout(i, j, m_fm[Hydro::ID1], iOct) += flux[Hydro::ID1];
-    if (m_Uout(i, j, m_fm[Hydro::ID1], iOct) < eps)
-      m_Uout(i, j, m_fm[Hydro::ID1], iOct) = ZERO_F;
+    m_Uout(i, j, Hydro::IAD1, iOct) += flux[Hydro::IAD1];
+    if (m_Uout(i, j, Hydro::IAD1, iOct) < eps)
+      m_Uout(i, j, Hydro::IAD1, iOct) = ZERO_F;
 
-    m_Uout(i, j, m_fm[Hydro::IPHI], iOct) += flux[Hydro::IPHI];
-    if (m_Uout(i, j, m_fm[Hydro::IPHI], iOct) < eps)
-      m_Uout(i, j, m_fm[Hydro::IPHI], iOct) = ZERO_F;
-    if (m_Uout(i, j, m_fm[Hydro::IPHI], iOct) > ONE_F - eps)
-      m_Uout(i, j, m_fm[Hydro::IPHI], iOct) = ONE_F;
+    m_Uout(i, j, Hydro::IA0, iOct) += flux[Hydro::IA0];
+    if (m_Uout(i, j, Hydro::IA0, iOct) < eps)
+      m_Uout(i, j, Hydro::IA0, iOct) = ZERO_F;
+    if (m_Uout(i, j, Hydro::IA0, iOct) > ONE_F - eps)
+      m_Uout(i, j, Hydro::IA0, iOct) = ONE_F;
 
-    m_Uout(i, j, m_fm[Hydro::IP], iOct) += flux[Hydro::IP];
-    m_Uout(i, j, m_fm[Hydro::IU], iOct) += flux[Hydro::IU];
-    m_Uout(i, j, m_fm[Hydro::IV], iOct) += flux[Hydro::IV];
+    m_Uout(i, j, Hydro::IP, iOct) += flux[Hydro::IP];
+    m_Uout(i, j, Hydro::IU, iOct) += flux[Hydro::IU];
+    m_Uout(i, j, Hydro::IV, iOct) += flux[Hydro::IV];
 
   } // update_U - 2d
 
@@ -346,24 +345,24 @@ public:
   {
     constexpr real_t eps = KALYPSSO_NUM(1e-12);
 
-    m_Uout(i, j, k, m_fm[Hydro::ID0], iOct) += flux[Hydro::ID0];
-    if (m_Uout(i, j, k, m_fm[Hydro::ID0], iOct) < eps)
-      m_Uout(i, j, k, m_fm[Hydro::ID0], iOct) = ZERO_F;
+    m_Uout(i, j, k, Hydro::IAD0, iOct) += flux[Hydro::IAD0];
+    if (m_Uout(i, j, k, Hydro::IAD0, iOct) < eps)
+      m_Uout(i, j, k, Hydro::IAD0, iOct) = ZERO_F;
 
-    m_Uout(i, j, k, m_fm[Hydro::ID1], iOct) += flux[Hydro::ID1];
-    if (m_Uout(i, j, k, m_fm[Hydro::ID1], iOct) < eps)
-      m_Uout(i, j, k, m_fm[Hydro::ID1], iOct) = ZERO_F;
+    m_Uout(i, j, k, Hydro::IAD1, iOct) += flux[Hydro::IAD1];
+    if (m_Uout(i, j, k, Hydro::IAD1, iOct) < eps)
+      m_Uout(i, j, k, Hydro::IAD1, iOct) = ZERO_F;
 
-    m_Uout(i, j, k, m_fm[Hydro::IPHI], iOct) += flux[Hydro::IPHI];
-    if (m_Uout(i, j, k, m_fm[Hydro::IPHI], iOct) < eps)
-      m_Uout(i, j, k, m_fm[Hydro::IPHI], iOct) = ZERO_F;
-    if (m_Uout(i, j, k, m_fm[Hydro::IPHI], iOct) > ONE_F - eps)
-      m_Uout(i, j, k, m_fm[Hydro::IPHI], iOct) = ONE_F;
+    m_Uout(i, j, k, Hydro::IA0, iOct) += flux[Hydro::IA0];
+    if (m_Uout(i, j, k, Hydro::IA0, iOct) < eps)
+      m_Uout(i, j, k, Hydro::IA0, iOct) = ZERO_F;
+    if (m_Uout(i, j, k, Hydro::IA0, iOct) > ONE_F - eps)
+      m_Uout(i, j, k, Hydro::IA0, iOct) = ONE_F;
 
-    m_Uout(i, j, k, m_fm[Hydro::IP], iOct) += flux[Hydro::IP];
-    m_Uout(i, j, k, m_fm[Hydro::IU], iOct) += flux[Hydro::IU];
-    m_Uout(i, j, k, m_fm[Hydro::IV], iOct) += flux[Hydro::IV];
-    m_Uout(i, j, k, m_fm[Hydro::IW], iOct) += flux[Hydro::IW];
+    m_Uout(i, j, k, Hydro::IP, iOct) += flux[Hydro::IP];
+    m_Uout(i, j, k, Hydro::IU, iOct) += flux[Hydro::IU];
+    m_Uout(i, j, k, Hydro::IV, iOct) += flux[Hydro::IV];
+    m_Uout(i, j, k, Hydro::IW, iOct) += flux[Hydro::IW];
 
   } // update_U - 3d
 

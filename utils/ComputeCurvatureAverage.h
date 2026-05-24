@@ -81,15 +81,13 @@ private:
   DataArrayBlock_t m_Udata;
 
 public:
-  ComputeCurvatureAverage(ConfigMap const &              config_map,
-                          orchard_key_view_t             orchard_keys,
-                          int32_t                        local_num_octants,
-                          FieldMap<core::models::FiveEq> fm,
-                          block_size_t<dim>              block_sizes,
-                          DataArrayBlock_t               Udata)
+  ComputeCurvatureAverage(ConfigMap const &          config_map,
+                          orchard_key_view_t const & orchard_keys,
+                          int32_t                    local_num_octants,
+                          block_size_t<dim> const &  block_sizes,
+                          DataArrayBlock_t const &   Udata)
     : m_orchard_keys(orchard_keys)
     , m_local_num_octants(local_num_octants)
-    , m_fm(fm)
     , m_xyz_min(get_xyz_min<dim>(config_map))
     , m_scaling_factor(get_scaling_factor(config_map))
     , m_Udata(Udata){};
@@ -101,7 +99,6 @@ public:
   //! \param[in] orchard_keys is a vector of all local (owned+ghost) octant orchard/morton keys
   //! \param[in] local_num_octants is the number of octants owned by current MPI process (ghost
   //!            excluded)
-  //! \param[in] fm is the field map (TODO refactor this)
   //! \param[in] block_sizes is an array the cartesian block sizes
   //! \param[in,out] invDt is the inverse of time step, the output of this functor
   //!
@@ -110,10 +107,9 @@ public:
         ConfigMap const &                    config_map,
         orchard_key_view_t                   orchard_keys,
         int32_t                              local_num_octants,
-        FieldMap<models::FiveEq>             fm,
         DataArrayBlock_t                     Udata)
   {
-    ComputeCurvatureAverage functor(config_map, orchard_keys, local_num_octants, fm, Udata);
+    ComputeCurvatureAverage functor(config_map, orchard_keys, local_num_octants, Udata);
 
     real_t              sum_curvature, total_sum_curvature = ZERO_F;
     Kokkos::Sum<real_t> reducer(sum_curvature);

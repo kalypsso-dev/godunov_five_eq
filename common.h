@@ -39,9 +39,6 @@ class SolverGodunovFiveEq;
 template <typename device_t>
 using orchard_key_view_t = typename orchard_key_base_t<device_t>::view_t;
 
-//! Shorthand for the five eq model
-using FiveEq = models::FiveEq;
-
 //! Hashmap type from Orchard keys to octant index
 template <typename device_t>
 using amr_hashmap_t = typename hashmap_base_t<device_t>::map_t;
@@ -75,49 +72,50 @@ get_region_init_state(const int32_t                    i_region,
                       const ConfigMap &                config_map)
 {
   // makes enum Hydro::VarId available
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
   // variables specific (per mass unit)
   HydroState<dim> q;
 
   const auto section = "region" + std::to_string(i_region);
-  const auto phi_rho = config_map.getRealVector(
-    section, "phi_rho", std::vector<real_t>{ KALYPSSO_NUM(0.0), KALYPSSO_NUM(0.0) });
-  if (phi_rho.size() != 2)
+  const auto alpha_rho = config_map.getRealVector(
+    section, "alpha_rho", std::vector<real_t>{ KALYPSSO_NUM(0.0), KALYPSSO_NUM(0.0) });
+  if (alpha_rho.size() != 2)
   {
     Kokkos::abort(
-      "Error reading input file: wrong number of values for \"phi_rho\" (must be two !)");
+      "Error reading input file: wrong number of values for \"alpha_rho\" (must be two !)");
   }
-  const auto phi0 = config_map.getReal(section, "phi0", KALYPSSO_NUM(1.0));
+  const auto alpha0 = config_map.getReal(section, "alpha0", KALYPSSO_NUM(1.0));
 
-  if (phi0 <= ZERO_F and phi_rho[0] > 0)
+  if (alpha0 <= ZERO_F and alpha_rho[0] > 0)
   {
-    Kokkos::abort("Error reading input file: wrong values for \"phi_rho[0]\" (must be zero !)");
+    Kokkos::abort("Error reading input file: wrong values for \"alpha_rho[0]\" (must be zero !)");
   }
-  if (phi0 >= ONE_F and phi_rho[1] > 0)
+  if (alpha0 >= ONE_F and alpha_rho[1] > 0)
   {
-    Kokkos::abort("Error reading input file: wrong values for \"phi_rho[1]\" (must be zero !)");
+    Kokkos::abort("Error reading input file: wrong values for \"alpha_rho[1]\" (must be zero !)");
   }
 
-  q[Hydro::IPHI] = phi0;
-  q[Hydro::ID0] = phi_rho[0];
-  q[Hydro::ID1] = phi_rho[1];
-  q[Hydro::ID] = q[Hydro::ID0] + q[Hydro::ID1];
+  q[Hydro::IA0] = alpha0;
+  q[Hydro::IA1] = ONE_F - alpha0;
+  q[Hydro::IAD0] = alpha_rho[0];
+  q[Hydro::IAD1] = alpha_rho[1];
+  q[Hydro::ID] = q[Hydro::IAD0] + q[Hydro::IAD1];
   q[Hydro::IU] = config_map.getReal(section, "u", KALYPSSO_NUM(0.0));
   q[Hydro::IV] = config_map.getReal(section, "v", KALYPSSO_NUM(0.0));
   if constexpr (dim == 3)
     q[Hydro::IW] = config_map.getReal(section, "w", KALYPSSO_NUM(0.0));
 
   const auto p = config_map.getReal(section, "p", KALYPSSO_NUM(1.0));
-  assertm(phi_rho[0] >= 0, "Invalid value for partial density 0");
-  assertm(phi_rho[1] >= 0, "Invalid value for partial density 1");
+  assertm(alpha_rho[0] >= 0, "Invalid value for partial density 0");
+  assertm(alpha_rho[1] >= 0, "Invalid value for partial density 1");
   assertm(p >= 0, "Invalid value for pressure");
 
   const auto & rho = q[Hydro::ID];
 
   // mixed state
   const auto eint_specific =
-    eos_wrapper.mixture_specific_eint(rho, p, phi0, 1 - phi0, phi_rho[0], phi_rho[1]);
+    eos_wrapper.mixture_specific_eint(rho, p, alpha0, 1 - alpha0, alpha_rho[0], alpha_rho[1]);
 
   const real_t ekin_specific = [](HydroState<dim> & qq) {
     if constexpr (dim == 2)
@@ -131,9 +129,10 @@ get_region_init_state(const int32_t                    i_region,
   HydroState<dim> Ucons;
 
   Ucons[Hydro::ID] = rho;
-  Ucons[Hydro::IPHI] = phi0;
-  Ucons[Hydro::ID0] = q[Hydro::ID0];
-  Ucons[Hydro::ID1] = q[Hydro::ID1];
+  Ucons[Hydro::IA0] = alpha0;
+  Ucons[Hydro::IA1] = ONE_F - alpha0;
+  Ucons[Hydro::IAD0] = q[Hydro::IAD0];
+  Ucons[Hydro::IAD1] = q[Hydro::IAD1];
   Ucons[Hydro::IE] = (eint_specific + ekin_specific) * rho;
   Ucons[Hydro::IU] = q[Hydro::IU] * rho;
   Ucons[Hydro::IV] = q[Hydro::IV] * rho;
@@ -153,7 +152,6 @@ template <size_t dim, typename device_t>
 auto
 get_initial_states(ConfigMap const & config_map, int nb_regions) -> InitialStates<dim, device_t>
 {
-  using Hydro = models::FiveEq;
   InitialStates<dim, device_t> initial_states("Initial states", static_cast<uint>(nb_regions));
   auto                         initial_states_host = Kokkos::create_mirror_view(initial_states);
 
@@ -175,9 +173,9 @@ template <size_t dim>
 KOKKOS_INLINE_FUNCTION real_t
 ekin_from_conservative_var_state(HydroState<dim> const & state)
 {
-  using Hydro = models::FiveEq;
+  using Hydro = models::FiveEq<dim>;
 
-  real_t density = state[Hydro::ID0] + state[Hydro::ID1];
+  real_t density = state[Hydro::IAD0] + state[Hydro::IAD1];
   real_t ekin = state[Hydro::IU] * state[Hydro::IU] + state[Hydro::IV] * state[Hydro::IV];
   if constexpr (dim == 3)
   {
@@ -186,6 +184,33 @@ ekin_from_conservative_var_state(HydroState<dim> const & state)
 
   return HALF_F * ekin / density;
 }
+
+/**
+ * Get vector of conservative variables.
+ */
+template <size_t dim, typename device_t>
+KOKKOS_INLINE_FUNCTION HydroState<dim>
+get_conservative_variables(DataArrayBlock<dim, real_t, device_t> const & Ucons,
+                           int32_t const &                               cell_index,
+                           iOct_t const &                                i_oct)
+{
+  HydroState<dim> uLoc;
+  using FiveEq = models::FiveEq<dim>;
+
+  uLoc[FiveEq::ID] = Ucons(cell_index, FiveEq::ID, i_oct);
+  uLoc[FiveEq::IE] = Ucons(cell_index, FiveEq::IE, i_oct);
+  uLoc[FiveEq::IU] = Ucons(cell_index, FiveEq::IU, i_oct);
+  uLoc[FiveEq::IV] = Ucons(cell_index, FiveEq::IV, i_oct);
+  if constexpr (dim == 3)
+    uLoc[FiveEq::IW] = Ucons(cell_index, FiveEq::IW, i_oct);
+  uLoc[FiveEq::IA0] = Ucons(cell_index, FiveEq::IA0, i_oct);
+  uLoc[FiveEq::IAD0] = Ucons(cell_index, FiveEq::IAD0, i_oct);
+  uLoc[FiveEq::IA1] = Ucons(cell_index, FiveEq::IA1, i_oct);
+  uLoc[FiveEq::IAD1] = Ucons(cell_index, FiveEq::IAD1, i_oct);
+
+  return uLoc;
+
+} // get_conservative_variables
 
 } // namespace godunov_five_eq
 

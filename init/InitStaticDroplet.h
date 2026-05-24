@@ -57,9 +57,6 @@ private:
   //! heavy data
   DataArrayBlock_t m_Udata;
 
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
-
   //! list of orchard key of the mesh
   orchard_key_view_t<device_t> m_orchard_keys;
 
@@ -88,14 +85,12 @@ private:
   const int32_t m_level_max;
 
 public:
-  InitStaticDropletDataFunctor(DataArrayBlock_t                     Udata,
-                               FieldMap<models::FiveEq>             fm,
-                               orchard_key_view_t<device_t>         orchard_keys,
+  InitStaticDropletDataFunctor(DataArrayBlock_t const &             Udata,
+                               orchard_key_view_t<device_t> const & orchard_keys,
                                int32_t                              local_num_octants,
                                InitialStates<dim, device_t> const & initial_states,
                                ConfigMap const &                    config_map)
     : m_Udata(Udata)
-    , m_fm(fm)
     , m_orchard_keys(orchard_keys)
     , m_local_num_octants(local_num_octants)
     , m_staticDropletParams(config_map)
@@ -108,9 +103,8 @@ public:
 
   // static method which does it all: create and execute functor
   static void
-  apply(DataArrayBlock_t                     Udata,
-        FieldMap<models::FiveEq>             fm,
-        orchard_key_view_t<device_t>         orchard_keys,
+  apply(DataArrayBlock_t const &             Udata,
+        orchard_key_view_t<device_t> const & orchard_keys,
         int32_t                              local_num_octants,
         InitialStates<dim, device_t> const & m_initial_states,
         ConfigMap const &                    config_map);
@@ -158,9 +152,6 @@ private:
   //! heavy hydrodynamics data
   DataArrayBlock_t m_Udata;
 
-  //! field manager
-  FieldMap<models::FiveEq> m_fm;
-
   //! list of orchard key of the mesh
   orchard_key_view_t<device_t> m_orchard_keys;
 
@@ -183,15 +174,13 @@ private:
   const Kokkos::Array<real_t, dim> m_xyz_min;
 
 public:
-  InitStaticDropletRefineFunctor(DataArrayBlock_t             Udata,
-                                 FieldMap<models::FiveEq>     fm,
-                                 orchard_key_view_t<device_t> orchard_keys,
-                                 amrflags_view_t              amrflags,
-                                 int32_t                      local_num_octants,
-                                 int                          level_refine,
-                                 ConfigMap const &            config_map)
+  InitStaticDropletRefineFunctor(DataArrayBlock_t const &             Udata,
+                                 orchard_key_view_t<device_t> const & orchard_keys,
+                                 amrflags_view_t const &              amrflags,
+                                 int32_t                              local_num_octants,
+                                 int                                  level_refine,
+                                 ConfigMap const &                    config_map)
     : m_Udata(Udata)
-    , m_fm(fm)
     , m_orchard_keys(orchard_keys)
     , m_amrflags(amrflags)
     , m_local_num_octants(local_num_octants)
@@ -202,13 +191,12 @@ public:
 
   // static method which does it all: create and execute functor
   static void
-  apply(DataArrayBlock_t             Udata,
-        FieldMap<models::FiveEq>     fm,
-        orchard_key_view_t<device_t> orchard_keys,
-        amrflags_view_t              amrflags,
-        int32_t                      local_num_octants,
-        int                          level_refine,
-        ConfigMap const &            config_map);
+  apply(DataArrayBlock_t const &             Udata,
+        orchard_key_view_t<device_t> const & orchard_keys,
+        amrflags_view_t const &              amrflags,
+        int32_t                              local_num_octants,
+        int                                  level_refine,
+        ConfigMap const &                    config_map);
 
   // ===========================================================
   // ===========================================================

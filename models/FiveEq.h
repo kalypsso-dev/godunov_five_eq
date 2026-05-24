@@ -8,11 +8,8 @@
 #ifndef KALYPSSO_GODUNOV_FIVE_EQ_MODELS_FIVE_EQ_H_
 #define KALYPSSO_GODUNOV_FIVE_EQ_MODELS_FIVE_EQ_H_
 
-#include <kalypsso/core/FieldMap.h>
-
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 
 namespace kalypsso
 {
@@ -25,142 +22,111 @@ namespace models
 
 // =============================================================
 // =============================================================
+template <size_t dim>
 class FiveEq
 {
 
 public:
-  struct Settings
-  {
-    size_t dim = 2;
-
-    Settings() = default;
-    Settings(size_t dim_)
-      : dim(dim_)
-    {}
-  }; // struct Settings
-
   using Id_t = int32_t;
 
-  //! Five equations models field ids
+  /**
+   * Five equations models field ids
+   */
   enum VarId : Id_t
   {
-    ID0 = 0,    /*!< ID0 volumic fraction x Density (material 0) index */
-    ID1 = 1,    /*!< ID1 volumic fraction x Density (material 1) index */
-    ID = 2,     /*!< ID mixture density */
-    IPHI = 3,   /*!< IPHI volumic fraction of material 0 */
-    IP = 4,     /*!< IP Pressure/Energy field index */
-    IE = 4,     /*!< IE Energy/Pressure field index */
-    IU = 5,     /*!< X velocity / momentum index */
-    IV = 6,     /*!< Y velocity / momentum index */
-    IW = 7,     /*!< Z velocity / momentum index */
-    IUSTAR = 8, /*!< IUSTAR star velocity used to compute volumic fraction advection source term */
-    IGX = 9,    /*!< X gravitational field index */
-    IGY = 10,   /*!< Y gravitational field index */
-    IGZ = 11,   /*!< Z gravitational field index */
-    VARID_COUNT = 12 /*!< invalid index, just counting number of fields */
+    ID = 0,                        /*!< ID mixture density */
+    IP = 1,                        /*!< IP Pressure/Energy field index */
+    IE = 1,                        /*!< IE Energy/Pressure field index */
+    IU = 2,                        /*!< X velocity / momentum index */
+    IV = 3,                        /*!< Y velocity / momentum index */
+    IW = (dim == 2) ? IV : IV + 1, /*!< Z velocity / momentum index */
+    HYDRO_VARID_COUNT = IW + 1,    /*!< number of hydrodynamics variables */
+    IA0 = HYDRO_VARID_COUNT,       /*!< IA0  volumic fraction           (material 0) index */
+    IAD0 = HYDRO_VARID_COUNT + 1,  /*!< IAD0 volumic fraction x Density (material 0) index */
+    IA1 = IA0 + 2,                 /*!< IA1  volumic fraction           (material 1) index */
+    IAD1 = IAD0 + 2,               /*!< IAD1 volumic fraction x Density (material 1) index */
+    VARID_COUNT = IAD1 + 1         /*!< invalid index, just counting number of fields */
   };
 
-  //! a dictionary of all variables names and corresponding id (enum)
-  //! this map is initialized in FiveEq.cpp
-  static const id2names_t m_id2names_all;
-
-public:
-  FiveEq()
-    : m_settings()
+  enum MaterialId : Id_t
   {
-    setup();
+    ALPHA = 0,
+    ALPHA_RHO = 1,
+    MATERIAL_ID_COUNT = 2
+  };
+
+  using var_names_t = std::array<std::string, static_cast<size_t>(VARID_COUNT)>;
+  static const var_names_t ID_TO_NAMES;
+
+  KOKKOS_INLINE_FUNCTION static int32_t
+  IA(int32_t i_mat)
+  {
+    return IA0 + 2 * i_mat;
   }
 
-  //! constructor
-  FiveEq(Settings settings)
-    : m_settings(settings)
+  KOKKOS_INLINE_FUNCTION static int32_t
+  IA(size_t i_mat)
   {
-    setup();
+    return IA(static_cast<int32_t>(i_mat));
   }
 
-  //! constructor
-  FiveEq(size_t dim)
-    : m_settings(dim)
+  KOKKOS_INLINE_FUNCTION static int32_t
+  IAD(int32_t i_mat)
   {
-    setup();
+    return IAD0 + 2 * i_mat;
   }
 
-  //! initialize model enabled variable maps
-  void
-  setup()
+  KOKKOS_INLINE_FUNCTION static int32_t
+  IAD(size_t i_mat)
   {
-
-    m_fieldmap.enable(ID0);
-    m_fieldmap.enable(ID1);
-    m_fieldmap.enable(IPHI);
-    m_fieldmap.enable(IE);
-    m_fieldmap.enable(IU);
-    m_fieldmap.enable(IV);
-    if (m_settings.dim == 3)
-    {
-      m_fieldmap.enable(IW);
-    }
-    m_fieldmap.enable(ID);
-    m_fieldmap.enable(IUSTAR);
-
-    // insert some fields in names2id and id2names maps
-    for (int32_t varIdInt = 0; varIdInt != VARID_COUNT; ++varIdInt)
-    {
-      const VarId varId = static_cast<VarId>(varIdInt);
-      if (m_fieldmap.enabled(varId))
-      {
-        const auto iter = m_id2names_all.find(varId);
-
-        if (iter != m_id2names_all.end())
-        {
-          m_names2id[iter->second] = varId;
-          m_id2names[varId] = iter->second;
-        }
-      }
-    } // for varIdInt
-
-  } // setup
-
-  FieldMap<FiveEq>
-  get_fieldmap()
-  {
-    return m_fieldmap;
+    return IAD(static_cast<int32_t>(i_mat));
   }
 
-  const FieldMap<FiveEq> &
-  get_fieldmap() const
+  KOKKOS_INLINE_FUNCTION static constexpr size_t
+  nbvar()
   {
-    return m_fieldmap;
+    return static_cast<size_t>(HYDRO_VARID_COUNT + 2 * 2);
   }
 
-  //! get id to names map for enabled variables
-  const names2id_t &
-  get_names2id_map() const
+  static std::string
+  name(Id_t var)
   {
-    return m_names2id;
+    if (var < HYDRO_VARID_COUNT)
+      return ID_TO_NAMES[var];
+
+    const auto  i_mat = (var - HYDRO_VARID_COUNT) / 2;
+    const auto  i_var = (var - HYDRO_VARID_COUNT) % 2;
+    std::string name = ID_TO_NAMES[IA0 + i_var];
+    return name + '_' + std::to_string(i_mat);
   }
 
-  //! get names to id map for enabled variables
-  const id2names_t &
-  get_id2names_map() const
+  static std::string
+  name(size_t var)
   {
-    return m_id2names;
+    return name(static_cast<Id_t>(var));
   }
 
-private:
-  //! model settings
-  Settings m_settings;
+  static var_names_t
+  get_var_names()
+  {
+    var_names_t arr;
 
-  //! Kokkos::Array mapping enums to index of active variables
-  FieldMap<FiveEq> m_fieldmap;
+    arr[ID] = "rho_mix";
+    arr[IE] = "e_tot";
+    arr[IU] = "rho_vx";
+    arr[IV] = "rho_vy";
+    if constexpr (dim == 3)
+      arr[IW] = "rho_vz";
+    arr[IA0] = "alpha";
+    arr[IAD0] = "alpha_rho";
 
-  //! map of ids to names
-  names2id_t m_names2id;
-
-  //! map of ids to names
-  id2names_t m_id2names;
+    return arr;
+  }
 
 }; // class FiveEq
+
+template <size_t dim>
+const typename FiveEq<dim>::var_names_t FiveEq<dim>::ID_TO_NAMES = FiveEq<dim>::get_var_names();
 
 } // namespace models
 
