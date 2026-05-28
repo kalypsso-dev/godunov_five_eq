@@ -9,7 +9,7 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/init.cpp
     init/init.h
     init/InitCircleAdvection.cpp
-	init/InitCircleAdvection.h
+    init/InitCircleAdvection.h
     init/InitDropletAdvection.cpp
     init/InitDropletAdvection.h
     init/InitStaticDroplet.cpp
