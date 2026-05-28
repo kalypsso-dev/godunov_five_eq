@@ -8,6 +8,8 @@ set(GODUNOV_FIVE_EQ_SRCS
     eos/eos_utils.h
     init/init.cpp
     init/init.h
+    init/InitCircleAdvection.cpp
+	init/InitCircleAdvection.h
     init/InitDropletAdvection.cpp
     init/InitDropletAdvection.h
     init/InitStaticDroplet.cpp

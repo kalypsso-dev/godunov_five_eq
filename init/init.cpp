@@ -9,6 +9,7 @@
 
 #include <godunov_five_eq/SolverGodunovFiveEq.h>
 
+#include <godunov_five_eq/init/InitCircleAdvection.h>
 #include <godunov_five_eq/init/InitDropletAdvection.h>
 #include <godunov_five_eq/init/InitRichtmyerMeshkov.h>
 #include <godunov_five_eq/init/InitShockBubble.h>
@@ -49,7 +50,11 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
 
     const auto problem_name = solver.problem_name();
 
-    if (!problem_name.compare("droplet_advection"))
+    if (!problem_name.compare("circle_advection"))
+    {
+      InitCircleAdvection<dim, device_t>::apply(solver);
+    }
+    else if (!problem_name.compare("droplet_advection"))
     {
       InitDropletAdvection<dim, device_t>::apply(solver);
     }

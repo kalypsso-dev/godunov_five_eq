@@ -23,6 +23,7 @@
 
 // utils
 #include <kalypsso/core/ExtractNonGhostedArray.h>
+#include <kalypsso/core/OverwriteVelocityField.h>
 
 namespace kalypsso
 {
@@ -144,6 +145,40 @@ GodunovImplemV0<dim, device_t>::do_time_step(DataArrayBlock_t U, DataArrayBlock_
   const auto gravity_enabled = this->m_config_map.getBool("gravity", "enabled", false);
   if (gravity_enabled)
     this->add_gravity_source_term(U, U2, dt);
+
+} // GodunovImplemV0<dim, device_t>::do_time_step
+
+// =====================================================================
+// =====================================================================
+template <size_t dim, typename device_t>
+void
+GodunovImplemV0<dim, device_t>::do_time_step(DataArrayBlock_t U,
+                                             DataArrayBlock_t U2,
+                                             real_t           t,
+                                             real_t           dt)
+{
+  this->do_time_step(U, U2, dt);
+
+  // optionally, overwrite velocity field
+  if (!this->m_problem_name.compare("circle_advection"))
+  {
+    using Hydro = models::FiveEq<dim>;
+    const auto overwrite_velocity_field_type =
+      core::get_overwrite_velocity_field_type(this->m_config_map);
+
+    core::OverwriteVelocityField<dim, device_t>::run(
+      this->m_config_map,
+      U2,
+      this->m_mesh_map.get_amr_mesh_info().local_num_quadrants(),
+      this->m_mesh_map.orchard_keys(),
+      overwrite_velocity_field_type,
+      Hydro::ID,
+      Hydro::IE,
+      Hydro::IU,
+      Hydro::IV,
+      Hydro::IW,
+      t + dt);
+  }
 
 } // GodunovImplemV0<dim, device_t>::do_time_step
 

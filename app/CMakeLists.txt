@@ -87,3 +87,8 @@ configure_file(test_shock_tube_2d_cocchi.ini test_shock_tube_2d_cocchi.ini COPYO
 # shock Air-Helium plot
 #
 add_subdirectory(test_shock_bubble_air_helium_2d)
+
+#
+# circle advection test
+#
+configure_file(test_circle_advection_2d_vortex.ini test_circle_advection_2d_vortex.ini COPYONLY)

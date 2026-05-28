@@ -156,6 +156,10 @@ public:
   void
   do_time_step(DataArrayBlock_t U, DataArrayBlock_t U2, real_t dt) override;
 
+  //! Perform actual time integration.
+  void
+  do_time_step(DataArrayBlock_t U, DataArrayBlock_t U2, real_t t, real_t dt) override;
+
 #ifdef KALYPSSO_CORE_USE_HDF5
   //! Save internal data (useful for debug).
   //! this routine is intended to be called with a hdf5 writer "well" configured (with mesh, file

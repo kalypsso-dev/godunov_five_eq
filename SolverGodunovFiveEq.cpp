@@ -508,7 +508,7 @@ SolverGodunovFiveEq<dim, device_t>::godunov_unsplit(real_t dt)
     fill_outside_quadrants(m_U);
 
     // perform actual time step integration
-    m_godunov_implem->do_time_step(m_U, m_U2, dt);
+    m_godunov_implem->do_time_step(m_U, m_U2, m_t, dt);
 
     // we need to copy U2 into U to be ready for next time step
     Kokkos::deep_copy(m_U.logical_view(), m_U2.logical_view());
@@ -524,7 +524,7 @@ SolverGodunovFiveEq<dim, device_t>::godunov_unsplit(real_t dt)
     Kokkos::deep_copy(m_U_RK.logical_view(), m_U.logical_view());
 
     // perform actual time step integration
-    m_godunov_implem->do_time_step(m_U, m_U_RK, dt);
+    m_godunov_implem->do_time_step(m_U, m_U_RK, m_t, dt);
 
     LinearCombination<dim, device_t>::apply(
       m_U, m_U_RK, TimeIntegratorConfig::RK2_SSP_STAGE1_COEFS, num_octants);
@@ -535,7 +535,7 @@ SolverGodunovFiveEq<dim, device_t>::godunov_unsplit(real_t dt)
     Kokkos::deep_copy(m_U2.logical_view(), m_U_RK.logical_view());
 
     // perform actual time step integration
-    m_godunov_implem->do_time_step(m_U_RK, m_U2, dt);
+    m_godunov_implem->do_time_step(m_U_RK, m_U2, m_t, dt);
 
     LinearCombination<dim, device_t>::apply(
       m_U, m_U2, TimeIntegratorConfig::RK2_SSP_STAGE2_COEFS, num_octants);
