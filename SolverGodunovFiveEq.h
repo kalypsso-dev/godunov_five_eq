@@ -24,7 +24,6 @@
 #include <kalypsso/core/kokkos_shared.h>
 #include <kalypsso/core/AMRmesh.h>
 #include <kalypsso/core/MeshMap.h>
-#include <kalypsso/core/FieldMap.h>
 #include <godunov_five_eq/models/FiveEq.h>
 #include <kalypsso/utils/mpi/ParallelEnv.h>
 #include <kalypsso/core/utils_block.h>

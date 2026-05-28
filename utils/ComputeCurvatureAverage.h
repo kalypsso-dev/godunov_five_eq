@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 /**
- * \file ComputeCurvatureAverage.h
+ * \file ComputeCurvatureAverage.h (UNFINISHED)
  */
 #ifndef KALYPSSO_GODUNOV_FIVE_EQ_COMPUTE_CURVATURE_AVERAGE_FUNCTOR_H_
 #define KALYPSSO_GODUNOV_FIVE_EQ_COMPUTE_CURVATURE_AVERAGE_FUNCTOR_H_
@@ -11,7 +11,6 @@
 #include <kalypsso/core/kalypsso_core_config.h>
 #include <kalypsso/core/kokkos_shared.h>
 #include <kalypsso/core/kalypsso_data_container.h> // for DataArrayBlock
-#include <kalypsso/core/FieldMap.h>
 #include <kalypsso/core/orchard_key_base.h>
 #include <kalypsso/utils/mpi/ParallelEnv.h>
 
@@ -19,6 +18,8 @@
 #include <kalypsso/core/models/HydroState.h>
 #include <kalypsso/core/models/utils_hydro.h>
 #include <kalypsso/core/utils_block.h>
+
+#include <godunov_five_eq/models/FiveEq.h>
 
 // other utilities
 #ifdef KALYPSSO_CORE_USE_CNPY
@@ -56,7 +57,7 @@ public:
   using exec_space = typename device_t::execution_space;
 
   // makes enum Hydro::VarId available
-  using FiveEq = models::FiveEq;
+  using FiveEq = models::FiveEq<dim>;
 
   //! global cell index
   using index_t = int32_t;
@@ -67,9 +68,6 @@ private:
 
   //! number of octants in the new mesh
   const int32_t m_local_num_octants;
-
-  //! field manager
-  const FieldMap<models::FiveEq> m_fm;
 
   //! get domain lower left corner
   const Kokkos::Array<real_t, dim> m_xyz_min;

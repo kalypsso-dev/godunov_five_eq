@@ -11,7 +11,6 @@
 #include <kalypsso/core/kalypsso_core_config.h> // for KALYPSSO_CORE_USE_HDF5, ...
 #include <kalypsso/core/HydroParams.h>
 #include <kalypsso/core/kokkos_shared.h>
-#include <kalypsso/core/FieldMap.h>
 #include <kalypsso/core/DataArrayBlock.h>
 
 #include <godunov_five_eq/models/FiveEq.h>

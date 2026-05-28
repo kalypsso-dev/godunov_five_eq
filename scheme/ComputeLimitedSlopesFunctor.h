@@ -10,7 +10,6 @@
 
 #include <kalypsso/core/kokkos_shared.h>
 #include <kalypsso/core/kalypsso_data_container.h> // for DataArrayBlock
-#include <kalypsso/core/FieldMap.h>
 
 // hydro utils (conservative versus primitive variable, equation of state, ...)
 #include <godunov_five_eq/models/FiveEq.h>
