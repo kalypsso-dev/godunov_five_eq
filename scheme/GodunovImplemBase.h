@@ -87,6 +87,7 @@ public:
     , m_block_sizes(get_block_sizes<dim>(config_map))
     , m_brick_sizes(get_brick_sizes<dim>(config_map))
     , m_is_brick_periodic(get_brick_periodicity<dim>(config_map))
+    , m_problem_name(config_map.getString("hydro", "problem", "unknown"))
     , m_profiling_mgr(profiling_manager)
     , m_amr_mesh(amr_mesh)
     , m_mesh_map(mesh_map)
@@ -111,6 +112,10 @@ public:
   //! Perform actual time integration.
   virtual void
   do_time_step(DataArrayBlock_t U, DataArrayBlock_t U2, real_t dt) = 0;
+
+  //! Perform actual time integration.
+  virtual void
+  do_time_step(DataArrayBlock_t U, DataArrayBlock_t U2, real_t t, real_t dt) = 0;
 
   // =====================================================================
   // =====================================================================
@@ -181,6 +186,9 @@ public:
 
   //! array of bool to tell if mesh is periodic or not
   const Kokkos::Array<bool, dim> m_is_brick_periodic;
+
+  //! init condition name (or problem)
+  std::string m_problem_name;
 
   //! Profiling manager
   ProfilingManager & m_profiling_mgr;
