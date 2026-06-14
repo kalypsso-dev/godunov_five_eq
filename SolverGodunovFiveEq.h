@@ -14,7 +14,6 @@
 #define KALYPSSO_GODUNOV_FIVE_EQ_SOLVER_GODUNOV_FIVE_EQ_H_
 
 #include <cstdio>
-#include <cstdbool>
 #include <cassert> // assert
 
 // shared
