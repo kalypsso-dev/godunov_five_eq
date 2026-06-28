@@ -144,70 +144,71 @@ run_simulation(ParallelEnv const &       par_env,
 
     auto solver_five_eq =
       dynamic_cast<godunov_five_eq::SolverGodunovFiveEq<dim, device_t> *>(solver);
-    // const auto st_params = TwoFluidShockTubeParams(config_map);
-    const auto st_name = config_map.getString("two_fluid_shock_tube", "name", "shock_tube");
 
+    const auto output_prefix = config_map.getString("output", "outputPrefix", "shock_tube");
+
+    const auto cell_var_names =
+      config_map.getStringVector("two_fluid_shock_tube",
+                                 "output_slices",
+                                 std::vector<std::string>{ "alpha_rho_0",
+                                                           "alpha_rho_1",
+                                                           "e_tot",
+                                                           "rho_mix",
+                                                           "rho_vx",
+                                                           "alpha_0",
+                                                           "thermal_pressure" });
+
+    //
     // 1. save main variables
+    //
+    for (auto const & name : cell_var_names)
     {
-      const auto cell_var_ids =
-        std::vector<int32_t>{ FiveEq::IAD0, FiveEq::IAD1, FiveEq::IE, FiveEq::IU, FiveEq::IA0 };
+      const auto id = FiveEq::id_from_name(name);
 
-      const auto cell_var_names =
-        std::vector<std::string>{ "alpha_rho_0", "alpha_rho_1", "e_tot", "rho_vx", "alpha_0" };
-
-      kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
-        solver_five_eq->U(),
-        0,
-        solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
-        IX,
-        solver_five_eq->mesh_map()->orchard_keys(),
-        cell_var_ids,
-        cell_var_names,
-        st_name,
-        par_env,
-        config_map);
+      if (id != FiveEq::INVALID_ID)
+      {
+        kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
+          solver_five_eq->U(),
+          0,
+          solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+          IX,
+          solver_five_eq->mesh_map()->orchard_keys(),
+          std::vector<int32_t>{ id },
+          std::vector<std::string>{ name },
+          output_prefix,
+          par_env,
+          config_map);
+      }
     }
 
-    // 2. save pressure
+    //
+    // 2. save derived quantities
+    //
+    for (godunov_five_eq::DERIVED_QUANTITY derived_var :
+         godunov_five_eq::DERIVED_QUANTITY::_values())
     {
-      const auto thermal_pressure =
-        solver_five_eq->get_derived_quantity(godunov_five_eq::DERIVED_QUANTITY::THERMAL_PRESSURE);
+      auto name = std::string{ derived_var._to_string() };
+      // get lower case name
+      std::for_each(
+        name.begin(), name.end(), [](char & c) { c = static_cast<char>(std::tolower(c)); });
 
-      const auto cell_var_ids = std::vector<int32_t>{ 0 };
-      const auto cell_var_names = std::vector<std::string>{ "pressure" };
-      kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
-        thermal_pressure,
-        0,
-        solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
-        IX,
-        solver_five_eq->mesh_map()->orchard_keys(),
-        cell_var_ids,
-        cell_var_names,
-        st_name,
-        par_env,
-        config_map);
-    }
+      if (is_present(cell_var_names, name))
+      {
+        const auto derived_quantity = solver_five_eq->get_derived_quantity(derived_var);
 
-    // 3. save speed of sound
-    {
-      const auto speed_of_sound =
-        solver_five_eq->get_derived_quantity(godunov_five_eq::DERIVED_QUANTITY::SPEED_OF_SOUND);
-
-      const auto cell_var_ids = std::vector<int32_t>{ 0 };
-      const auto cell_var_names = std::vector<std::string>{ "speed_of_sound" };
-      kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
-        speed_of_sound,
-        0,
-        solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
-        IX,
-        solver_five_eq->mesh_map()->orchard_keys(),
-        cell_var_ids,
-        cell_var_names,
-        st_name,
-        par_env,
-        config_map);
-    }
-
+        kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
+          derived_quantity,
+          0,
+          solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+          IX,
+          solver_five_eq->mesh_map()->orchard_keys(),
+          std::vector<int32_t>{ 0 },
+          std::vector<std::string>{ name },
+          output_prefix,
+          par_env,
+          config_map);
+      }
+    } // end for derived_var
   } // shock tube post-processing
 
   if (!solver->problem_name().compare("static_droplet"))

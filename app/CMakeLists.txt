@@ -30,12 +30,6 @@ endif(KALYPSSO_CORE_USE_CPPTRACE)
 configure_file(test_droplet_advection_2d.ini test_droplet_advection_2d.ini COPYONLY)
 configure_file(test_richtmyer_meshkov_2d.ini test_richtmyer_meshkov_2d.ini COPYONLY)
 configure_file(test_richtmyer_meshkov_3d.ini test_richtmyer_meshkov_3d.ini COPYONLY)
-configure_file(test_two_fluid_shock_tube_2d.ini test_two_fluid_shock_tube_2d.ini COPYONLY)
-# configure_file(test_two_fluid_shock_tube_3d.ini test_two_fluid_shock_tube_3d.ini COPYONLY)
-configure_file(test_two_fluid_shock_tube_2d_alu.ini test_two_fluid_shock_tube_2d_alu.ini COPYONLY)
-configure_file(test_two_fluid_shock_tube_2d_tnt.ini test_two_fluid_shock_tube_2d_tnt.ini COPYONLY)
-configure_file(test_two_fluid_shock_tube_2d_lx17_jwl.ini test_two_fluid_shock_tube_2d_lx17_jwl.ini
-               COPYONLY)
 
 configure_file(test_triple_point_2d.ini test_triple_point_2d.ini COPYONLY)
 configure_file(test_shock_bubble_air_r22_2d.ini test_shock_bubble_air_r22_2d.ini COPYONLY)
@@ -95,3 +89,8 @@ add_subdirectory(test_shock_bubble_air_helium_2d)
 # circle advection test
 #
 configure_file(test_circle_advection_2d_vortex.ini test_circle_advection_2d_vortex.ini COPYONLY)
+
+#
+# shock tubes
+#
+add_subdirectory(test_two_fluid_shock_tube_2d)

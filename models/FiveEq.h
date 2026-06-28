@@ -45,7 +45,8 @@ public:
     IAD0 = HYDRO_VARID_COUNT + 1,  /*!< IAD0 volumic fraction x Density (material 0) index */
     IA1 = IA0 + 2,                 /*!< IA1  volumic fraction           (material 1) index */
     IAD1 = IAD0 + 2,               /*!< IAD1 volumic fraction x Density (material 1) index */
-    VARID_COUNT = IAD1 + 1         /*!< invalid index, just counting number of fields */
+    VARID_COUNT = IAD1 + 1,        /*!< invalid index, just counting number of fields */
+    INVALID_ID
   };
 
   enum MaterialId : Id_t
@@ -104,6 +105,18 @@ public:
   name(size_t var)
   {
     return name(static_cast<Id_t>(var));
+  }
+
+  static int32_t
+  id_from_name(std::string const & a_name)
+  {
+    for (int32_t i_var = 0; i_var < static_cast<int32_t>(FiveEq<dim>::nbvar()); ++i_var)
+    {
+      auto const varName = FiveEq<dim>::name(i_var);
+      if (varName == a_name)
+        return i_var;
+    }
+    return FiveEq<dim>::INVALID_ID;
   }
 
   static var_names_t
