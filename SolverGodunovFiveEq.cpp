@@ -503,7 +503,7 @@ template <size_t dim, typename device_t>
 void
 SolverGodunovFiveEq<dim, device_t>::godunov_unsplit(real_t dt)
 {
-  if (m_time_integrator == +TimeIntegrator::HANCOCK)
+  if (m_time_integrator == +TimeIntegrator::HANCOCK or m_time_integrator == +TimeIntegrator::RK1)
   {
     // we need conservative variables in ghost cell to be up to date
     synchronize_mpi_ghost_data(m_U);
@@ -715,7 +715,7 @@ SolverGodunovFiveEq<dim, device_t>::total_mem_size_in_bytes()
   total += m_U.allocated_size_in_bytes();
   total += m_U2.allocated_size_in_bytes();
 
-  if (m_time_integrator != +TimeIntegrator::HANCOCK)
+  if (m_time_integrator != +TimeIntegrator::HANCOCK and m_time_integrator != +TimeIntegrator::RK1)
   {
     total += m_U_RK.allocated_size_in_bytes();
   }
