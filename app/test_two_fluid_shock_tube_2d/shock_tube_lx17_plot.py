@@ -13,13 +13,13 @@ rc('text', usetex=True)
 import configparser
 import subprocess
 
-def sod_plot(ini_filename):
+def shock_tube_plot(ini_filename):
 
     config = configparser.ConfigParser()
     config.read(ini_filename)
 
     tEnd=config.getfloat('run','tEnd', fallback=0.2)
-    prefix=config.get('output','outputPrefix',fallback='sod')
+    prefix=config.get('output','outputPrefix',fallback='shock_tube')
 
     if (config['run']['dimension'] == '2'):
         # doing 2d
@@ -28,29 +28,34 @@ def sod_plot(ini_filename):
         print("Error: only 2D supported here")
         return
 
-    rhoL = config.get('region0','alpha_rho', fallback=1.0)
+    alphaL = config.getfloat('region0','alpha0',fallback=1.0)
+    alpha_rhoL = config.get('region0','alpha_rho', fallback="1.0,0.0")
+    rhoL = alphaL*float(alpha_rhoL.split(',')[0])+(1.0-alphaL)*float(alpha_rhoL.split(',')[1])
     pL = config.getfloat('region0', 'p', fallback=1.0)
     uL = config.getfloat('region0', 'u', fallback=0.0)
-    rhoR = config.get('region1', 'alpha_rho', fallback=0.125)
+
+    alphaR = config.getfloat('region1','alpha0',fallback=0.0)
+    alpha_rhoR = config.get('region1', 'alpha_rho', fallback="0.0,1.0")
+    rhoR = alphaR*float(alpha_rhoR.split(',')[0])+(1.0-alphaR)*float(alpha_rhoR.split(',')[1])
     pR = config.getfloat('region1', 'p', fallback=0.1)
     uR = config.getfloat('region1', 'u', fallback=0.0)
 
-    print('sod args : dim={} tEnd={}'.format(dim,tEnd))
-    print('sod left state: rhoL={} pL={} uL={}'.format(rhoL,pL,uL))
-    print('sod right state: rhoR={} pR={} uR={}'.format(rhoR,pR,uR))
+    print('shock_tube args : dim={} tEnd={}'.format(dim,tEnd))
+    print('shock_tube left state: rhoL={} pL={} uL={}'.format(rhoL,pL,uL))
+    print('shock_tube right state: rhoR={} pR={} uR={}'.format(rhoR,pR,uR))
 
     # load numerical solution
-    #sod_num=np.loadtxt('sod_numerical_solution.csv', skiprows=1, delimiter=',',usecols=(1,2,6))
-    #sod_num_x = sod_num[:,2]
-    #sod_num_rho = sod_num[:,1]
-    #sod_num_level = sod_num[:,0]
+    #shock_tube_num=np.loadtxt('shock_tube_numerical_solution.csv', skiprows=1, delimiter=',',usecols=(1,2,6))
+    #shock_tube_num_x = shock_tube_num[:,2]
+    #shock_tube_num_rho = shock_tube_num[:,1]
+    #shock_tube_num_level = shock_tube_num[:,0]
 
-    sod_num_x = np.load(prefix+'_positions.npy')
-    sod_num_rho = np.load(prefix+'_rho_mix.npy')
-    sod_num_p = np.load(prefix+'_thermal_pressure.npy')
-    sod_num_rho_vx = np.load(prefix+'_rho_vx.npy')
-    sod_num_vx = sod_num_rho_vx/sod_num_rho
-    sod_num_level = np.load(prefix+'_level.npy')
+    shock_tube_num_x = np.load(prefix+'_positions.npy')
+    shock_tube_num_rho = np.load(prefix+'_rho_mix.npy')
+    shock_tube_num_p = np.load(prefix+'_thermal_pressure.npy')
+    shock_tube_num_rho_vx = np.load(prefix+'_rho_vx.npy')
+    shock_tube_num_vx = shock_tube_num_rho_vx/shock_tube_num_rho
+    shock_tube_num_level = np.load(prefix+'_level.npy')
 
     time_integrator = config.get('amr','time_integrator',fallback='unknown')
     slope_type = config.get('hydro','slope_type',fallback=-1)
@@ -64,10 +69,10 @@ def sod_plot(ini_filename):
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4, ncols=1, figsize=(8,16))
     #ax1 = plt.subplot(2,1,1)
     #ax2 = plt.subplot(2,1,2, sharex=ax1)
-    ax1.plot(sod_num_x, sod_num_rho, 'xb-', label='rho')
-    ax2.plot(sod_num_x, sod_num_vx, 'xb-', label='velocity')
-    ax3.plot(sod_num_x, sod_num_p, 'xb-', label='pressure')
-    ax4.plot(sod_num_x, sod_num_level, 'xb-', label='AMR levels')
+    ax1.plot(shock_tube_num_x, shock_tube_num_rho, 'xb-', label='rho')
+    ax2.plot(shock_tube_num_x, shock_tube_num_vx, 'xb-', label='velocity')
+    ax3.plot(shock_tube_num_x, shock_tube_num_p, 'xb-', label='pressure')
+    ax4.plot(shock_tube_num_x, shock_tube_num_level, 'xb-', label='AMR levels')
     ax1.legend()
     ax2.legend()
     ax3.legend()
@@ -82,4 +87,4 @@ if __name__ == "__main__":
     parser.add_argument('--ini', type=str, default='test_two_fluid_shock_tube_2d_lx17_jwl.ini', help='kalypsso ini parameter file')
     args = parser.parse_args()
 
-    sod_plot(args.ini)
+    shock_tube_plot(args.ini)
