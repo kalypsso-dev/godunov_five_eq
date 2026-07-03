@@ -99,7 +99,7 @@ GodunovImplemV0<dim, device_t>::do_time_step(DataArrayBlock_t U, DataArrayBlock_
    */
 
   // start main computation
-  KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME);
+  KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME);
 
   // convert conservative variable into primitives ones m_U ==> m_Q_ghosted_mg
   // also perform a half time step gravity predictor
@@ -204,7 +204,7 @@ void
 GodunovImplemV0<dim, device_t>::convert_to_primitives_in_mirror_quads(DataArrayBlock_t U)
 {
 
-  KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_CONV_PRIM);
+  KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_CONV_PRIM);
 
   // compute primitive variables in owned mirror blocks (U must have MPI ghost up to date)
   ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_in_mirrors(
@@ -229,7 +229,7 @@ void
 GodunovImplemV0<dim, device_t>::convert_to_primitives(DataArrayBlock_t U)
 {
 
-  KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_CONV_PRIM);
+  KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_CONV_PRIM);
 
   //
   // step 1: convert to primitive variables in owned quadrants
@@ -283,7 +283,7 @@ void
 GodunovImplemV0<dim, device_t>::compute_limited_slopes_in_owned_and_ghosts()
 {
 
-  KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_SLOPES);
+  KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_SLOPES);
 
   const auto num_quadrants_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
   const auto num_quadrants_ghost = this->m_mesh_map.get_amr_mesh_info().local_num_ghosts();
@@ -307,7 +307,7 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
                                                                              int    direction)
 {
 
-  KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_COMPUTE_FLUXES);
+  KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_COMPUTE_FLUXES);
 
   const auto num_quadrants_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
   const auto num_quadrants_ghost = this->m_mesh_map.get_amr_mesh_info().local_num_ghosts();
@@ -369,7 +369,7 @@ GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned(DataArrayBlock_t
                                                                 int              direction)
 {
 
-  KALYPSSO_PROFILING_REGION(this->m_profiling_mgr, NUM_SCHEME_UPDATE);
+  KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_UPDATE);
 
   // check flux array sizes
   {
