@@ -212,7 +212,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::resize_auxiliary_data()
 {
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, AMR_CYCLE_RESIZE_AUX);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_RESIZE_AUX);
 
   m_Uhost.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
 
@@ -277,7 +277,7 @@ template <size_t dim, typename device_t>
 void
 SolverGodunovFiveEq<dim, device_t>::do_amr_cycle()
 {
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, AMR_CYCLE);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE);
 
   /*
    * Following steps:
@@ -339,7 +339,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::do_load_balancing()
 {
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, LOAD_BALANCING);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING);
 
 #ifdef KALYPSSO_CORE_USE_MPI
   if (m_par_env.nRanks() > 1)
@@ -349,25 +349,25 @@ SolverGodunovFiveEq<dim, device_t>::do_load_balancing()
 
     // 1. partition mesh
     {
-      KALYPSSO_PROFILING_REGION(m_profiling_mgr, LOAD_BALANCING_PARTITION_MESH);
+      KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_PARTITION_MESH);
       mesh_partitioner.partition_mesh(this->m_amr_mesh->forest());
     }
 
     // 2. partition user data from U to U2, U2 is reallocated
     {
-      KALYPSSO_PROFILING_REGION(m_profiling_mgr, LOAD_BALANCING_PARTITION_USERDATA);
+      KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_PARTITION_USERDATA);
       mesh_partitioner.repartition_userdata(m_U, m_U2);
     }
 
     // 3. update orchard keys and hashmap (so that ghost is also up to date)
     {
-      KALYPSSO_PROFILING_REGION(m_profiling_mgr, LOAD_BALANCING_UPDATE_MESH);
+      KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_UPDATE_MESH);
       constexpr bool do_reset_ghosts = true;
       update_mesh(do_reset_ghosts);
     }
 
     {
-      KALYPSSO_PROFILING_REGION(m_profiling_mgr, LOAD_BALANCING_RESIZE);
+      KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_RESIZE);
 
       // 4. resize U, U2 and auxiliary arrays to the final size (taking into account ghost, outside
       // quads, ...)
@@ -389,6 +389,7 @@ template <size_t dim, typename device_t>
 real_t
 SolverGodunovFiveEq<dim, device_t>::compute_dt_local()
 {
+  KALYPSSO_PROFILING_REGION_DEVICE(m_profiling_mgr, NUM_CFL_LOCAL);
 
   real_t dt;
   real_t invDt = ZERO_F;
@@ -479,7 +480,7 @@ SolverGodunovFiveEq<dim, device_t>::next_iteration_impl()
 
   // compute new dt
   {
-    KALYPSSO_PROFILING_REGION(m_profiling_mgr, NUM_CFL);
+    KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, NUM_CFL);
     compute_dt();
   }
 
@@ -555,7 +556,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::save_solution_impl(bool pure_checkpoint)
 {
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, IO);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, IO);
 
   // if (m_params.output_exabrick_enabled)
   //   save_solution_exabrick();
@@ -989,7 +990,7 @@ SolverGodunovFiveEq<dim, device_t>::synchronize_mpi_ghost_data(
 
 #ifdef KALYPSSO_CORE_USE_MPI
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, AMR_CYCLE_SYNC_MPI_GHOSTS);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_SYNC_MPI_GHOSTS);
 
   m_mesh_ghosts_exchanger.exchange(data);
 
@@ -1041,7 +1042,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::mark_cells()
 {
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, AMR_CYCLE_MARK_CELLS);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_MARK_CELLS);
 
   /*
    * coarsen threshold must be smaller than refine threshold (here we take refine threshold divided
@@ -1156,7 +1157,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::adapt_mesh()
 {
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, AMR_CYCLE_ADAPT_MESH);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_ADAPT_MESH);
 
   //
   // apply AMR cycle: refine + coarsen + 2:1 balance
@@ -1177,7 +1178,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::map_userdata_after_adapt(amr_hashmap_t amr_hashmap_before_adapt)
 {
 
-  KALYPSSO_PROFILING_REGION(m_profiling_mgr, AMR_CYCLE_USERDATA_REMAP);
+  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_USERDATA_REMAP);
 
   // clone the AMR orchard keys of the old mesh.
   //

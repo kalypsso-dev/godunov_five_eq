@@ -130,7 +130,7 @@ public:
     Kokkos::fence();
 
 #ifdef KALYPSSO_CORE_USE_MPI
-    KALYPSSO_PROFILING_REGION(m_profiling_mgr, NUM_SCHEME_EXCHANGE_Q_MIRROR_GHOST);
+    KALYPSSO_PROFILING_REGION_DEVICE(m_profiling_mgr, NUM_SCHEME_EXCHANGE_Q_MIRROR_GHOST);
     this->m_mesh_ghosts_exchanger.exchange_inplace(q_ghosted_mg);
 #endif // KALYPSSO_CORE_USE_MPI
 
@@ -145,7 +145,7 @@ public:
                           [[maybe_unused]] real_t           dt)
   {
 
-    KALYPSSO_PROFILING_REGION(m_profiling_mgr, NUM_SCHEME_GRAVITY);
+    KALYPSSO_PROFILING_REGION_DEVICE(m_profiling_mgr, NUM_SCHEME_GRAVITY);
 
     KALYPSSO_WARN("Please implement gravity for FiveEq !");
     // AddGravitySourceTerm<dim, device_t>::apply(
