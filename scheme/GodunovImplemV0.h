@@ -104,10 +104,10 @@ public:
                  models::FiveEq<dim>::nbvar(),
                  0)
     , m_Fluxes("Fluxes",
-               get_flux_block_sizes<dim>(this->m_block_sizes),
+               get_flux_block_sizes<dim>(this->m_block_sizes, IX),
                models::FiveEq<dim>::nbvar(),
                0)
-    , m_u_star("u_star", get_flux_block_sizes<dim>(this->m_block_sizes), 1, 0)
+    , m_u_star("u_star", get_flux_block_sizes<dim>(this->m_block_sizes, IX), 1, 0)
   {} // GodunovImplemV0
 
   // destructor
