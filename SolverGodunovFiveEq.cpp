@@ -35,6 +35,7 @@
 
 // Compute functors
 #include <godunov_five_eq/border_conditions/FillOutside.h>
+#include <godunov_five_eq/border_conditions/BCJet.h>
 #include <godunov_five_eq/border_conditions/BCShockBubble.h>
 
 #include <godunov_five_eq/scheme/ComputeDtFiveEqFunctor.h>
@@ -1018,7 +1019,16 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t data
                                                m_par_env);
 
   // override some border if requested
-  if (m_problem_name == "shock_bubble")
+  if (m_config_map.getBool("border", "enable_jet", false))
+  {
+
+    FillOutsideJet<dim, device_t>::apply(data,
+                                         m_mesh_map->get_amr_mesh_info(),
+                                         m_mesh_map->orchard_keys(),
+                                         m_mesh_map->hashmap(),
+                                         m_config_map);
+  }
+  else if (m_problem_name == "shock_bubble")
   {
     const auto shock_bubble_params = ShockBubbleParams<device_t>(m_config_map);
 
