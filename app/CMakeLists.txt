@@ -28,7 +28,7 @@ if(KALYPSSO_CORE_USE_CPPTRACE)
 endif(KALYPSSO_CORE_USE_CPPTRACE)
 
 configure_file(test_droplet_advection_2d.ini test_droplet_advection_2d.ini COPYONLY)
-configure_file(test_jet_2d.ini test_jet_2d.ini COPYONLY)
+configure_file(test_jet_2d_fuel_N2.ini test_jet_2d_fuel_N2.ini COPYONLY)
 configure_file(test_richtmyer_meshkov_2d.ini test_richtmyer_meshkov_2d.ini COPYONLY)
 configure_file(test_richtmyer_meshkov_3d.ini test_richtmyer_meshkov_3d.ini COPYONLY)
 

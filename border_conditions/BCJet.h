@@ -152,11 +152,12 @@ public:
    * \param[in] config_map application parameter map
    */
   static void
-  apply(DataArrayBlock_t const &   userdata,
-        AMRMeshInfo const &        amr_mesh_info,
-        orchard_key_view_t const & orchard_keys,
-        amr_hashmap_t const &      amr_hashmap,
-        ConfigMap const &          config_map);
+  apply(DataArrayBlock_t const &         userdata,
+        AMRMeshInfo const &              amr_mesh_info,
+        orchard_key_view_t const &       orchard_keys,
+        amr_hashmap_t const &            amr_hashmap,
+        EosWrapper_t<HostDevice> const & eos_host,
+        ConfigMap const &                config_map);
 
   // ==============================================================
   // ==============================================================

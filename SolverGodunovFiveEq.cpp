@@ -75,6 +75,7 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
   , m_is_brick_periodic(get_brick_periodicity<dim>(config_map))
   , m_hydro_settings(config_map)
   , m_eos(config_map)
+  , m_eos_host(config_map)
   , m_amr_mesh(std::make_shared<AMRmesh<dim>>(par_env, config_map))
   , m_mesh_map(std::make_shared<MeshMap<dim, device_t>>(config_map, par_env))
 #ifdef KALYPSSO_CORE_USE_MPI
@@ -1026,6 +1027,7 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t data
                                          m_mesh_map->get_amr_mesh_info(),
                                          m_mesh_map->orchard_keys(),
                                          m_mesh_map->hashmap(),
+                                         m_eos_host,
                                          m_config_map);
   }
   else if (m_problem_name == "shock_bubble")

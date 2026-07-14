@@ -43,17 +43,17 @@ FillOutsideJet<dim, device_t>::FillOutsideJet(DataArrayBlock_t const &   userdat
 // ==============================================================
 template <size_t dim, typename device_t>
 void
-FillOutsideJet<dim, device_t>::apply(DataArrayBlock_t const &   userdata,
-                                     AMRMeshInfo const &        amr_mesh_info,
-                                     orchard_key_view_t const & orchard_keys,
-                                     amr_hashmap_t const &      amr_hashmap,
-                                     ConfigMap const &          config_map)
+FillOutsideJet<dim, device_t>::apply(DataArrayBlock_t const &         userdata,
+                                     AMRMeshInfo const &              amr_mesh_info,
+                                     orchard_key_view_t const &       orchard_keys,
+                                     amr_hashmap_t const &            amr_hashmap,
+                                     EosWrapper_t<HostDevice> const & eos_host,
+                                     ConfigMap const &                config_map)
 {
 
   // get material 1 conservative variables
   const int  i_region = 1;
-  const auto eos_wrapper = EosWrapper_t<HostDevice>(config_map);
-  const auto u_jet = get_region_init_state<dim>(i_region, eos_wrapper, config_map);
+  const auto u_jet = get_region_init_state<dim>(i_region, eos_host, config_map);
 
   // create compute functor
   FillOutsideJet<dim, device_t> functor(

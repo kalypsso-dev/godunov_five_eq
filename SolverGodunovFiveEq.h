@@ -295,8 +295,11 @@ private:
   //! hydrodynamics parameters
   const HydroSettings m_hydro_settings;
 
-  //! Equation of state wrapper
+  //! Equation of state wrapper (device)
   EosWrapper_t<device_t> m_eos;
+
+  //! Equation of state wrapper (host)
+  EosWrapper_t<HostDevice> m_eos_host;
 
   //! The main AMR object
   std::shared_ptr<AMRmesh<dim>> m_amr_mesh;
