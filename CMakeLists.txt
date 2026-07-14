@@ -1,4 +1,6 @@
 set(GODUNOV_FIVE_EQ_SRCS
+    border_conditions/BCJet.cpp
+    border_conditions/BCJet.h
     border_conditions/BCShockBubble.cpp
     border_conditions/BCShockBubble.h
     border_conditions/FillOutside.cpp
@@ -12,6 +14,8 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/InitCircleAdvection.h
     init/InitDropletAdvection.cpp
     init/InitDropletAdvection.h
+    init/InitJet.cpp
+    init/InitJet.h
     init/InitStaticDroplet.cpp
     init/InitStaticDroplet.h
     init/InitRichtmyerMeshkov.cpp

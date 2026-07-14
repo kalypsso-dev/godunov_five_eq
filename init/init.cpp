@@ -11,6 +11,7 @@
 
 #include <godunov_five_eq/init/InitCircleAdvection.h>
 #include <godunov_five_eq/init/InitDropletAdvection.h>
+#include <godunov_five_eq/init/InitJet.h>
 #include <godunov_five_eq/init/InitRichtmyerMeshkov.h>
 #include <godunov_five_eq/init/InitShockBubble.h>
 #include <godunov_five_eq/init/InitSphericalImplosion.h>
@@ -57,6 +58,10 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     else if (!problem_name.compare("droplet_advection"))
     {
       InitDropletAdvection<dim, device_t>::apply(solver);
+    }
+    else if (!problem_name.compare("jet"))
+    {
+      InitJet<dim, device_t>::apply(solver);
     }
     else if (!problem_name.compare("richtmyer_meshkov"))
     {

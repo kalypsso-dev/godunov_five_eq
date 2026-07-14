@@ -61,16 +61,12 @@ private:
   //! Number of materials
   int m_num_materials;
 
-  //! Equation of state wrapper
-  EosWrapper_t<device_t> m_eos_wrapper;
-
   //! get geometrical scaling factor
   const real_t m_scaling_factor;
 
   //! get domain lower left corner
   const Kokkos::Array<real_t, dim> m_xyz_min;
 
-public:
   InitTriplePointDataFunctor(DataArrayBlock_t const &             Udata,
                              orchard_key_view_t<device_t> const & orchard_keys,
                              int32_t                              local_num_octants,
@@ -82,11 +78,11 @@ public:
     , m_triple_point_params(config_map)
     , m_initial_states(initial_states)
     , m_num_materials(config_map.getInteger("run", "nmat", 0))
-    , m_eos_wrapper(config_map)
     , m_scaling_factor(get_scaling_factor(config_map))
     , m_xyz_min(get_xyz_min<dim>(config_map)){};
 
-  // static method which does it all: create and execute functor
+public:
+  //! static method which does it all: create and execute functor
   static void
   apply(DataArrayBlock_t const &             Udata,
         orchard_key_view_t<device_t> const & orchard_keys,

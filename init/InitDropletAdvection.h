@@ -70,9 +70,6 @@ private:
   //! Number of materials
   int m_num_materials;
 
-  //! Equation of state wrapper
-  EosWrapper_t<device_t> m_eos_wrapper;
-
   //! get geometrical scaling factor
   const real_t m_scaling_factor;
 
@@ -93,7 +90,6 @@ private:
     , m_droplet_advection_params(config_map)
     , m_initial_states(initial_states)
     , m_num_materials(config_map.getInteger("run", "nmat", 0))
-    , m_eos_wrapper(config_map)
     , m_scaling_factor(get_scaling_factor(config_map))
     , m_xyz_min(get_xyz_min<dim>(config_map))
     , m_level_max(config_map.getInteger("amr", "level_max", 0)){};
