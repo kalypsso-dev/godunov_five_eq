@@ -34,6 +34,7 @@ configure_file(test_richtmyer_meshkov_2d.ini test_richtmyer_meshkov_2d.ini COPYO
 configure_file(test_richtmyer_meshkov_3d.ini test_richtmyer_meshkov_3d.ini COPYONLY)
 
 configure_file(test_triple_point_2d.ini test_triple_point_2d.ini COPYONLY)
+configure_file(test_triple_point_3d.ini test_triple_point_3d.ini COPYONLY)
 configure_file(test_shock_bubble_air_r22_2d.ini test_shock_bubble_air_r22_2d.ini COPYONLY)
 configure_file(test_shock_bubble_air_r22_2d_multi.ini test_shock_bubble_air_r22_2d_multi.ini
                COPYONLY)
@@ -65,6 +66,7 @@ configure_file(test_spherical_implosion_2d_tin_air.ini test_spherical_implosion_
                COPYONLY)
 
 configure_file(test_triple_point_2d_thinc.ini test_triple_point_2d_thinc.ini COPYONLY)
+configure_file(test_triple_point_3d_thinc.ini test_triple_point_3d_thinc.ini COPYONLY)
 
 configure_file(test_underwater_explosion_2d.ini test_underwater_explosion_2d.ini COPYONLY)
 configure_file(test_underwater_explosion_3d.ini test_underwater_explosion_3d.ini COPYONLY)
