@@ -89,7 +89,13 @@ InitTriplePointDataFunctor<dim, device_t>::operator()(const int32_t & global_ind
   }
   else
   {
-    if (xyz[IY] <= m_triple_point_params.yd)
+    auto is_in_region1 = xyz[IY] <= m_triple_point_params.yd;
+    if constexpr (dim == 3)
+    {
+      is_in_region1 = sqrt(xyz[IY] * xyz[IY] + xyz[IZ] * xyz[IZ]) <= m_triple_point_params.yd;
+    }
+
+    if (is_in_region1)
     {
 
       // region 1: material 1 only
