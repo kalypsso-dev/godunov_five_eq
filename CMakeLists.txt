@@ -32,6 +32,7 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/InitUnderwaterExplosion.h
     models/FiveEq.h
     models/HydroState.h
+    models/riemann_solver_types.h
     models/RiemannSolvers.h
     models/utils.h
     profiling.h

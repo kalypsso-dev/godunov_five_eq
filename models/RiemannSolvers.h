@@ -15,7 +15,7 @@
 #include <kalypsso/core/HydroParams.h>
 #include <kalypsso/core/real_type.h>
 
-#include <kalypsso/core/models/riemann_solver_types.h>
+#include <godunov_five_eq/models/riemann_solver_types.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/eos/eos_utils.h>
