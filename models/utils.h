@@ -14,7 +14,7 @@
 #include <kalypsso/core/HydroParams.h>
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/models/HydroState.h>
-#include <kalypsso/core/models/HydroSettings.h>
+#include <godunov_five_eq/models/HydroSettings.h>
 #include <godunov_five_eq/eos/eos_utils.h>
 
 namespace kalypsso

@@ -16,8 +16,8 @@
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/models/HydroState.h>
 #include <godunov_five_eq/eos/eos_utils.h>
+#include <godunov_five_eq/models/HydroSettings.h>
 
-#include <kalypsso/core/models/HydroSettings.h>
 #include <kalypsso/core/multimaterial_utils.h>
 #include <kalypsso/core/orchard_key_base.h>
 #include <kalypsso/core/amr_hashmap.h>

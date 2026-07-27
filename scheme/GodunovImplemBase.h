@@ -26,7 +26,7 @@
 
 #include <godunov_five_eq/models/FiveEq.h>
 #include <godunov_five_eq/eos/eos_utils.h>
-#include <kalypsso/core/models/HydroSettings.h>
+#include <godunov_five_eq/models/HydroSettings.h>
 
 // for IO
 #ifdef KALYPSSO_CORE_USE_HDF5
