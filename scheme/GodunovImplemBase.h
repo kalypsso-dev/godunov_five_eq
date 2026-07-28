@@ -111,17 +111,17 @@ public:
 
   //! Perform actual time integration.
   virtual void
-  do_time_step(DataArrayBlock_t U, DataArrayBlock_t U2, real_t dt) = 0;
+  do_time_step(DataArrayBlock_t const & U, DataArrayBlock_t const & U2, real_t dt) = 0;
 
   //! Perform actual time integration.
   virtual void
-  do_time_step(DataArrayBlock_t U, DataArrayBlock_t U2, real_t t, real_t dt) = 0;
+  do_time_step(DataArrayBlock_t const & U, DataArrayBlock_t const & U2, real_t t, real_t dt) = 0;
 
   // =====================================================================
   // =====================================================================
   //! fills ghost octants with primitive variables from MPI exchange
   void
-  mpi_exchange_mirrors_and_ghosts([[maybe_unused]] DataArrayGhostedBlock_t q_ghosted_mg)
+  mpi_exchange_mirrors_and_ghosts([[maybe_unused]] DataArrayGhostedBlock_t const & q_ghosted_mg)
   {
 
     // This fence ensure that buffer q_ghosted_mg (output of ConvertToPrimitivesVariablesFunctor
@@ -140,9 +140,9 @@ public:
   // =====================================================================
   //! add gravity source term
   virtual void
-  add_gravity_source_term([[maybe_unused]] DataArrayBlock_t u_in,
-                          [[maybe_unused]] DataArrayBlock_t u_out,
-                          [[maybe_unused]] real_t           dt)
+  add_gravity_source_term([[maybe_unused]] DataArrayBlock_t const & u_in,
+                          [[maybe_unused]] DataArrayBlock_t const & u_out,
+                          [[maybe_unused]] real_t                   dt)
   {
 
     KALYPSSO_PROFILING_REGION_DEVICE(m_profiling_mgr, NUM_SCHEME_GRAVITY);
