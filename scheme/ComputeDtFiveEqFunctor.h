@@ -77,7 +77,7 @@ private:
   //! heavy data - conservative variables
   DataArrayBlock_t m_Udata;
 
-  //! Stiffened gas eos parameters
+  //! Equation of State (EoS) parameters
   EosWrapper_t<device_t> m_eos;
 
   //! gravity source term enabled ?

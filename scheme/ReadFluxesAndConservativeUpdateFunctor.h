@@ -16,10 +16,13 @@
 #include <kalypsso/core/ConformalFaceStatus.h>
 #include <kalypsso/core/StencilHelper.h>
 #include <kalypsso/core/AMRMeshInfo.h>
+#include <kalypsso/core/volume_fraction_advection_source_term_type.h>
 
 // model
+#include <godunov_five_eq/common.h>
 #include <godunov_five_eq/models/utils.h>
 #include <godunov_five_eq/models/HydroState.h>
+#include <godunov_five_eq/eos/eos_utils.h>
 
 #include <type_traits>
 
@@ -116,6 +119,12 @@ private:
   //! hydro settings (EOS parameters)
   HydroSettings m_hydro_settings;
 
+  //! Equation of State (EoS) parameters
+  EosWrapper_t<device_t> m_eos;
+
+  //! volume fraction advection source term type (ALLAIRE_KOKH or KAPILA)
+  core::VolFracAdvectionSourceTermType m_vol_frac_adv_source_term_type;
+
   //! time step
   real_t m_dt;
 
@@ -140,6 +149,7 @@ public:
                                          DataArrayBlock_t const &           u_star,
                                          int                                direction,
                                          HydroSettings const &              hydro_settings,
+                                         EosWrapper_t<device_t> const &     eos,
                                          real_t                             dt);
 
   // ==============================================================
@@ -161,6 +171,7 @@ public:
         brick_size_t<dim> const &          brick_sizes,
         Kokkos::Array<bool, dim> const &   is_brick_periodic,
         HydroSettings const &              hydro_settings,
+        EosWrapper_t<device_t> const &     eos,
         real_t                             dt);
 
   // ====================================================================
@@ -376,6 +387,43 @@ public:
   template <size_t dim_ = dim, std::enable_if_t<(dim_ == 3), bool> = true>
   KOKKOS_INLINE_FUNCTION void
   read_fluxes_and_update_3d(const index_t & cell_index, const index_t & iOct_local) const;
+
+  // ====================================================================
+  // ====================================================================
+  /**
+   * Compute source term scaling factor to account for either Allaire-Kokh or Kapila model.
+   */
+  KOKKOS_INLINE_FUNCTION real_t
+  get_source_term_factor(const index_t & cell_index, const index_t & iOct_local) const
+  {
+    if (m_vol_frac_adv_source_term_type == +core::VolFracAdvectionSourceTermType::KAPILA)
+    {
+      // recompute pressure in current cell
+
+      // 1. cell-centered conservative variables in current cell
+      const auto uLoc = get_conservative_variables(m_Uin, cell_index, iOct_local);
+
+      // 2. recompute pressure
+      const auto pressure = models::compute_mixture_pressure<dim>(uLoc, m_hydro_settings, m_eos);
+
+      // 3. material bulk modulus
+      const auto kappa0 =
+        m_eos.material_bulk_modulus(0, pressure, uLoc[Hydro::IA0], uLoc[Hydro::IAD0]);
+
+      // 4. mixture bulk modulus
+      const auto kappa_bar = m_eos.mixture_bulk_modulus(uLoc[Hydro::ID],
+                                                        pressure,
+                                                        uLoc[Hydro::IA0],
+                                                        uLoc[Hydro::IA1],
+                                                        uLoc[Hydro::IAD0],
+                                                        uLoc[Hydro::IAD1]);
+
+      return (ONE_F - kappa_bar / kappa0);
+    }
+
+    // default value (Allaire-Kokh model)
+    return ONE_F;
+  }
 
   // ====================================================================
   // ====================================================================
