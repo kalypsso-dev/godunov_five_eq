@@ -122,7 +122,7 @@ private:
   //! Equation of State (EoS) parameters
   EosWrapper_t<device_t> m_eos;
 
-  //! volume fraction advection source term type (ALLAIRE_KOKH or KAPILA)
+  //! volume fraction advection source term type (ALLAIRE_KOKH or MILLER_PUCKETT)
   core::VolFracAdvectionSourceTermType m_vol_frac_adv_source_term_type;
 
   //! time step
@@ -407,12 +407,12 @@ public:
   // ====================================================================
   // ====================================================================
   /**
-   * Compute source term scaling factor to account for either Allaire-Kokh or Kapila model.
+   * Compute source term scaling factor to account for either Allaire-Kokh or Miller-Puckett model.
    */
   KOKKOS_INLINE_FUNCTION real_t
   get_source_term_factor(const index_t & cell_index, const index_t & iOct_local, size_t i_mat) const
   {
-    if (m_vol_frac_adv_source_term_type == +core::VolFracAdvectionSourceTermType::KAPILA)
+    if (m_vol_frac_adv_source_term_type == +core::VolFracAdvectionSourceTermType::MILLER_PUCKETT)
     {
       // recompute pressure in current cell
 
