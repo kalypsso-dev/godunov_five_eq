@@ -122,7 +122,8 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
   auto const & i = coords[IX];
   auto const & j = coords[IY];
 
-  const auto st_factor = get_source_term_factor(cell_index, iOct);
+  const auto st_factor0 = get_source_term_factor(cell_index, iOct, 0);
+  const auto st_factor1 = get_source_term_factor(cell_index, iOct, 1);
 
   /*
    * Update with flux along IX
@@ -158,9 +159,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] -=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * ustar_flx * m_Uin(i, j, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -168,7 +172,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] -=
-          st_factor * m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA1, iOct);
       }
 
       //
@@ -185,9 +191,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] +=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * ustar_flx * m_Uin(i, j, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -195,7 +204,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] +=
-          st_factor * m_u_star(i + 1, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i + 1, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * m_u_star(i + 1, j, 0, iOct) * m_Uin(i, j, Hydro::IA1, iOct);
       }
 
       update_U(i, j, iOct, accum_flux);
@@ -237,9 +248,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] -=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * ustar_flx * m_Uin(i, j, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -247,7 +261,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] -=
-          st_factor * m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * m_u_star(i, j, 0, iOct) * m_Uin(i, j, Hydro::IA1, iOct);
       }
 
       //
@@ -264,9 +280,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] +=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * ustar_flx * m_Uin(i, j, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -274,7 +293,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_2d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] +=
-          st_factor * m_u_star(i, j + 1, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j + 1, 0, iOct) * m_Uin(i, j, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * m_u_star(i, j + 1, 0, iOct) * m_Uin(i, j, Hydro::IA1, iOct);
       }
 
       update_U(i, j, iOct, accum_flux);
@@ -299,7 +320,8 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
   auto const & j = coords[IY];
   auto const & k = coords[IZ];
 
-  const auto st_factor = get_source_term_factor(cell_index, iOct);
+  const auto st_factor0 = get_source_term_factor(cell_index, iOct, 0);
+  const auto st_factor1 = get_source_term_factor(cell_index, iOct, 1);
 
   /*
    * Update with flux along IX
@@ -335,9 +357,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] -=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * ustar_flx * m_Uin(i, j, k, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -345,7 +370,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] -=
-          st_factor * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA1, iOct);
       }
 
       //
@@ -362,9 +389,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] +=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * ustar_flx * m_Uin(i, j, k, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -372,7 +402,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] +=
-          st_factor * m_u_star(i + 1, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i + 1, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * m_u_star(i + 1, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA1, iOct);
       }
 
       update_U(i, j, k, iOct, accum_flux);
@@ -414,9 +446,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] -=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * ustar_flx * m_Uin(i, j, k, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -424,7 +459,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] -=
-          st_factor * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA1, iOct);
       }
 
       //
@@ -441,9 +478,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] +=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * ustar_flx * m_Uin(i, j, k, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -451,7 +491,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] +=
-          st_factor * m_u_star(i, j + 1, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j + 1, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * m_u_star(i, j + 1, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA1, iOct);
       }
 
       update_U(i, j, k, iOct, accum_flux);
@@ -493,9 +535,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] -=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * ustar_flx * m_Uin(i, j, k, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -503,7 +548,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] -=
-          st_factor * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] -=
+          st_factor1 * m_u_star(i, j, k, 0, iOct) * m_Uin(i, j, k, Hydro::IA1, iOct);
       }
 
       //
@@ -520,9 +567,12 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
                                     volume_ratio;
 
         // volumic fraction source term
+        const auto ustar_flx =
+          get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux);
         accum_flux[Hydro::IA0] +=
-          st_factor * get_ustar_flux_from_fine_neighbor(iOct, coords, shift, use_right_flux) *
-          m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+          st_factor0 * ustar_flx * m_Uin(i, j, k, Hydro::IA0, iOct) / volume_ratio;
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * ustar_flx * m_Uin(i, j, k, Hydro::IA1, iOct) / volume_ratio;
       }
       else
       {
@@ -530,7 +580,9 @@ ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::read_fluxes_and_update_3d
 
         // volumic fraction source term
         accum_flux[Hydro::IA0] +=
-          st_factor * m_u_star(i, j, k + 1, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+          st_factor0 * m_u_star(i, j, k + 1, 0, iOct) * m_Uin(i, j, k, Hydro::IA0, iOct);
+        accum_flux[Hydro::IA1] +=
+          st_factor1 * m_u_star(i, j, k + 1, 0, iOct) * m_Uin(i, j, k, Hydro::IA1, iOct);
       }
 
       update_U(i, j, k, iOct, accum_flux);

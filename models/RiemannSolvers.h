@@ -31,7 +31,8 @@ struct RiemannState
 {
   HydroState<dim> flux;
   real_t          ustar;
-  real_t          phistar;
+  real_t          phistar0;
+  real_t          phistar1;
 };
 
 // =====================================================================================
@@ -41,9 +42,10 @@ struct RiemannState
  *
  * \param[in] qleft    : input left  state (primitive variables)
  * \param[in] qright   : input right state (primitive variables)
- * \param[out] flux    : output flux
- * \param[out] ustar   : velocity
- * \param[out] phistar : volumic fraction
+ * \param[in] settings : hydro settings
+ * \param[in] eos      : equation of state
+ *
+ * \return flux    : output flux
  *
  *
  * Reference:
@@ -62,7 +64,8 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
   RiemannState<dim> riemann_state;
   auto &            flux = riemann_state.flux;
   auto &            ustar = riemann_state.ustar;
-  auto &            phistar = riemann_state.phistar;
+  auto &            phistar0 = riemann_state.phistar0;
+  auto &            phistar1 = riemann_state.phistar1;
 
   // makes enum Hydro::VarId available
   using Hydro = kalypsso::godunov_five_eq::models::FiveEq<dim>;
@@ -243,11 +246,13 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
 
   if (flux[Hydro::ID] > ZERO_F)
   {
-    phistar = qleft[Hydro::IA0];
+    phistar0 = qleft[Hydro::IA0];
+    phistar1 = ONE_F - qleft[Hydro::IA0];
   }
   else
   {
-    phistar = qright[Hydro::IA0];
+    phistar0 = qright[Hydro::IA0];
+    phistar1 = ONE_F - qright[Hydro::IA0];
   }
 
   ustar = uo;
@@ -263,9 +268,10 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
  *
  * \param[in] qL       : input left  state (primitive variables)
  * \param[in] qR       : input right state (primitive variables)
- * \param[out] flux    : output flux
- * \param[out] ustar   : velocity
- * \param[out] phistar : volumic fraction
+ * \param[in] settings : hydro settings
+ * \param[in] eos      : equation of state
+ *
+ * \return flux    : output flux
  *
  *
  * Reference:
@@ -287,7 +293,8 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
   RiemannState<dim> riemann_state;
   auto &            flux = riemann_state.flux;
   auto &            ustar = riemann_state.ustar;
-  auto &            phistar = riemann_state.phistar;
+  auto &            phistar0 = riemann_state.phistar0;
+  auto &            phistar1 = riemann_state.phistar1;
 
   // makes enum Hydro::VarId available
   using Hydro = kalypsso::godunov_five_eq::models::FiveEq<dim>;
@@ -438,11 +445,13 @@ KOKKOS_INLINE_FUNCTION RiemannState<dim>
 
   if (flux[Hydro::ID] > ZERO_F)
   {
-    phistar = qL[Hydro::IA0];
+    phistar0 = qL[Hydro::IA0];
+    phistar1 = ONE_F - qL[Hydro::IA0];
   }
   else
   {
-    phistar = qR[Hydro::IA0];
+    phistar0 = qR[Hydro::IA0];
+    phistar1 = ONE_F - qR[Hydro::IA0];
   }
 
   if (SL > ZERO_F)

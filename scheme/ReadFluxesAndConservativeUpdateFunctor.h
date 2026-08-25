@@ -204,6 +204,7 @@ public:
     flux[Hydro::IAD0] = m_Fluxes(i, j, Hydro::IAD0, iOct);
     flux[Hydro::IAD1] = m_Fluxes(i, j, Hydro::IAD1, iOct);
     flux[Hydro::IA0] = m_Fluxes(i, j, Hydro::IA0, iOct);
+    flux[Hydro::IA1] = m_Fluxes(i, j, Hydro::IA1, iOct);
     flux[Hydro::IP] = m_Fluxes(i, j, Hydro::IP, iOct);
     flux[Hydro::IU] = m_Fluxes(i, j, Hydro::IU, iOct);
     flux[Hydro::IV] = m_Fluxes(i, j, Hydro::IV, iOct);
@@ -231,6 +232,7 @@ public:
     flux[Hydro::IAD0] = m_Fluxes(i, j, k, Hydro::IAD0, iOct);
     flux[Hydro::IAD1] = m_Fluxes(i, j, k, Hydro::IAD1, iOct);
     flux[Hydro::IA0] = m_Fluxes(i, j, k, Hydro::IA0, iOct);
+    flux[Hydro::IA1] = m_Fluxes(i, j, k, Hydro::IA1, iOct);
     flux[Hydro::IP] = m_Fluxes(i, j, k, Hydro::IP, iOct);
     flux[Hydro::IU] = m_Fluxes(i, j, k, Hydro::IU, iOct);
     flux[Hydro::IV] = m_Fluxes(i, j, k, Hydro::IV, iOct);
@@ -269,6 +271,8 @@ public:
       cell_loc_neigh, Hydro::IAD1, m_Fluxes, use_right_flux);
     flux[Hydro::IA0] = m_stencil_helper.compute_face_siblings_sum(
       cell_loc_neigh, Hydro::IA0, m_Fluxes, use_right_flux);
+    flux[Hydro::IA1] = m_stencil_helper.compute_face_siblings_sum(
+      cell_loc_neigh, Hydro::IA1, m_Fluxes, use_right_flux);
     flux[Hydro::IP] = m_stencil_helper.compute_face_siblings_sum(
       cell_loc_neigh, Hydro::IP, m_Fluxes, use_right_flux);
     flux[Hydro::IU] = m_stencil_helper.compute_face_siblings_sum(
@@ -332,6 +336,12 @@ public:
     if (m_Uout(i, j, Hydro::IA0, iOct) > ONE_F - eps)
       m_Uout(i, j, Hydro::IA0, iOct) = ONE_F;
 
+    m_Uout(i, j, Hydro::IA1, iOct) += flux[Hydro::IA1];
+    if (m_Uout(i, j, Hydro::IA1, iOct) < eps)
+      m_Uout(i, j, Hydro::IA1, iOct) = ZERO_F;
+    if (m_Uout(i, j, Hydro::IA1, iOct) > ONE_F - eps)
+      m_Uout(i, j, Hydro::IA1, iOct) = ONE_F;
+
     m_Uout(i, j, Hydro::IP, iOct) += flux[Hydro::IP];
     m_Uout(i, j, Hydro::IU, iOct) += flux[Hydro::IU];
     m_Uout(i, j, Hydro::IV, iOct) += flux[Hydro::IV];
@@ -369,6 +379,12 @@ public:
     if (m_Uout(i, j, k, Hydro::IA0, iOct) > ONE_F - eps)
       m_Uout(i, j, k, Hydro::IA0, iOct) = ONE_F;
 
+    m_Uout(i, j, k, Hydro::IA1, iOct) += flux[Hydro::IA1];
+    if (m_Uout(i, j, k, Hydro::IA1, iOct) < eps)
+      m_Uout(i, j, k, Hydro::IA1, iOct) = ZERO_F;
+    if (m_Uout(i, j, k, Hydro::IA1, iOct) > ONE_F - eps)
+      m_Uout(i, j, k, Hydro::IA1, iOct) = ONE_F;
+
     m_Uout(i, j, k, Hydro::IP, iOct) += flux[Hydro::IP];
     m_Uout(i, j, k, Hydro::IU, iOct) += flux[Hydro::IU];
     m_Uout(i, j, k, Hydro::IV, iOct) += flux[Hydro::IV];
@@ -394,7 +410,7 @@ public:
    * Compute source term scaling factor to account for either Allaire-Kokh or Kapila model.
    */
   KOKKOS_INLINE_FUNCTION real_t
-  get_source_term_factor(const index_t & cell_index, const index_t & iOct_local) const
+  get_source_term_factor(const index_t & cell_index, const index_t & iOct_local, size_t i_mat) const
   {
     if (m_vol_frac_adv_source_term_type == +core::VolFracAdvectionSourceTermType::KAPILA)
     {
@@ -408,7 +424,8 @@ public:
 
       // 3. material bulk modulus
       const auto kappa0 =
-        m_eos.material_bulk_modulus(0, pressure, uLoc[Hydro::IA0], uLoc[Hydro::IAD0]);
+        i_mat == 0 ? m_eos.material_bulk_modulus(0, pressure, uLoc[Hydro::IA0], uLoc[Hydro::IAD0])
+                   : m_eos.material_bulk_modulus(1, pressure, uLoc[Hydro::IA1], uLoc[Hydro::IAD1]);
 
       // 4. mixture bulk modulus
       const auto kappa_bar = m_eos.mixture_bulk_modulus(uLoc[Hydro::ID],

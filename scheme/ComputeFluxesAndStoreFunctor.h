@@ -203,6 +203,7 @@ public:
     q[Hydro::IAD0] = m_q(i, j, Hydro::IAD0, iOct_local);
     q[Hydro::IAD1] = m_q(i, j, Hydro::IAD1, iOct_local);
     q[Hydro::IA0] = m_q(i, j, Hydro::IA0, iOct_local);
+    q[Hydro::IA1] = m_q(i, j, Hydro::IA1, iOct_local);
     q[Hydro::IP] = m_q(i, j, Hydro::IP, iOct_local);
     q[Hydro::IU] = m_q(i, j, Hydro::IU, iOct_local);
     q[Hydro::IV] = m_q(i, j, Hydro::IV, iOct_local);
@@ -229,6 +230,7 @@ public:
     q[Hydro::IAD0] = m_q(i, j, k, Hydro::IAD0, iOct_local);
     q[Hydro::IAD1] = m_q(i, j, k, Hydro::IAD1, iOct_local);
     q[Hydro::IA0] = m_q(i, j, k, Hydro::IA0, iOct_local);
+    q[Hydro::IA1] = m_q(i, j, k, Hydro::IA1, iOct_local);
     q[Hydro::IP] = m_q(i, j, k, Hydro::IP, iOct_local);
     q[Hydro::IU] = m_q(i, j, k, Hydro::IU, iOct_local);
     q[Hydro::IV] = m_q(i, j, k, Hydro::IV, iOct_local);
@@ -257,6 +259,7 @@ public:
     m_Fluxes(i, j, Hydro::IAD0, iOct) = flux[Hydro::IAD0];
     m_Fluxes(i, j, Hydro::IAD1, iOct) = flux[Hydro::IAD1];
     m_Fluxes(i, j, Hydro::IA0, iOct) = flux[Hydro::IA0];
+    m_Fluxes(i, j, Hydro::IA1, iOct) = flux[Hydro::IA1];
 
     m_Fluxes(i, j, Hydro::IP, iOct) = flux[Hydro::IP];
     m_Fluxes(i, j, Hydro::IU, iOct) = flux[Hydro::IU];
@@ -292,6 +295,7 @@ public:
     m_Fluxes(i, j, k, Hydro::IAD0, iOct) = flux[Hydro::IAD0];
     m_Fluxes(i, j, k, Hydro::IAD1, iOct) = flux[Hydro::IAD1];
     m_Fluxes(i, j, k, Hydro::IA0, iOct) = flux[Hydro::IA0];
+    m_Fluxes(i, j, k, Hydro::IA1, iOct) = flux[Hydro::IA1];
 
     m_Fluxes(i, j, k, Hydro::IP, iOct) = flux[Hydro::IP];
     m_Fluxes(i, j, k, Hydro::IU, iOct) = flux[Hydro::IU];
