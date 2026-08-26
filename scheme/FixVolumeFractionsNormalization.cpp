@@ -55,9 +55,19 @@ FixVolumeFractionsNormalization<dim, device_t>::operator()(const index_t & globa
   auto const iOct_local = global_index / num_cells;
   auto const cell_index = global_index - iOct_local * num_cells;
 
-  m_U(cell_index, Hydro::IA1, iOct_local) = ONE_F - m_U(cell_index, Hydro::IA0, iOct_local);
-  m_U(cell_index, Hydro::ID, iOct_local) =
+  const auto sum_alpha =
+    m_U(cell_index, Hydro::IA0, iOct_local) + m_U(cell_index, Hydro::IA1, iOct_local);
+  const auto sum_alpha_rho =
     m_U(cell_index, Hydro::IAD0, iOct_local) + m_U(cell_index, Hydro::IAD1, iOct_local);
+
+  KOKKOS_ASSERT(sum_alpha > 0 && "Sum of all volume fractions must be strictly positive.");
+
+  const auto one_over_sum_alpha = ONE_F / sum_alpha;
+
+  m_U(cell_index, Hydro::IA0, iOct_local) *= one_over_sum_alpha;
+  m_U(cell_index, Hydro::IA1, iOct_local) *= one_over_sum_alpha;
+  // m_U(cell_index, Hydro::IA1, iOct_local) = ONE_F - m_U(cell_index, Hydro::IA0, iOct_local);
+  m_U(cell_index, Hydro::ID, iOct_local) = sum_alpha_rho;
 
 } // operator ()
 

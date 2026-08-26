@@ -394,6 +394,7 @@ GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned(DataArrayBlock_t
                                                                this->m_brick_sizes,
                                                                this->m_is_brick_periodic,
                                                                this->m_hydro_settings,
+                                                               this->m_eos,
                                                                dt);
 
 } // GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned

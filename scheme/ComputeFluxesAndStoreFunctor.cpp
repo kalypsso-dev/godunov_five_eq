@@ -394,9 +394,11 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::compute_fluxes_and_store_2d(
     auto              riemann_state = riemann_hydro<2>(qL, qR, m_hydro_settings, m_eos);
     HydroState<dim> & flux = riemann_state.flux;
     auto &            ustar = riemann_state.ustar;
-    auto &            phistar = riemann_state.phistar;
+    auto &            phistar0 = riemann_state.phistar0;
+    auto &            phistar1 = riemann_state.phistar1;
 
-    flux[Hydro::IA0] = ustar * phistar;
+    flux[Hydro::IA0] = ustar * phistar0;
+    flux[Hydro::IA1] = ustar * phistar1;
 
     // step 4 : accumulate flux in current cell
     const auto flux_cur = flux * dtdS_over_dV_cur;
@@ -434,11 +436,13 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::compute_fluxes_and_store_2d(
     auto              riemann_state = riemann_hydro<2>(qL, qR, m_hydro_settings, m_eos);
     HydroState<dim> & flux = riemann_state.flux;
     auto &            ustar = riemann_state.ustar;
-    auto &            phistar = riemann_state.phistar;
+    auto &            phistar0 = riemann_state.phistar0;
+    auto &            phistar1 = riemann_state.phistar1;
 
     my_swap(flux[Hydro::IU], flux[Hydro::IV]);
 
-    flux[Hydro::IA0] = ustar * phistar;
+    flux[Hydro::IA0] = ustar * phistar0;
+    flux[Hydro::IA1] = ustar * phistar1;
 
     // step 4 : accumulate flux in current cell
     const auto flux_cur = flux * dtdS_over_dV_cur;
@@ -525,9 +529,11 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::compute_fluxes_and_store_3d(
     auto              riemann_state = riemann_hydro<3>(qL, qR, m_hydro_settings, m_eos);
     HydroState<dim> & flux = riemann_state.flux;
     auto &            ustar = riemann_state.ustar;
-    auto &            phistar = riemann_state.phistar;
+    auto &            phistar0 = riemann_state.phistar0;
+    auto &            phistar1 = riemann_state.phistar1;
 
-    flux[Hydro::IA0] = ustar * phistar;
+    flux[Hydro::IA0] = ustar * phistar0;
+    flux[Hydro::IA1] = ustar * phistar1;
 
     // step 4 : accumulate flux in current cell
     const auto flux_cur = flux * dtdS_over_dV_cur;
@@ -570,11 +576,13 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::compute_fluxes_and_store_3d(
     auto              riemann_state = riemann_hydro<3>(qL, qR, m_hydro_settings, m_eos);
     HydroState<dim> & flux = riemann_state.flux;
     auto &            ustar = riemann_state.ustar;
-    auto &            phistar = riemann_state.phistar;
+    auto &            phistar0 = riemann_state.phistar0;
+    auto &            phistar1 = riemann_state.phistar1;
 
     my_swap(flux[Hydro::IU], flux[Hydro::IV]);
 
-    flux[Hydro::IA0] = ustar * phistar;
+    flux[Hydro::IA0] = ustar * phistar0;
+    flux[Hydro::IA1] = ustar * phistar1;
 
     // step 4 : accumulate flux in current cell
     const auto flux_cur = flux * dtdS_over_dV_cur;
@@ -617,11 +625,13 @@ ComputeFluxesAndStoreFunctor<dim, device_t>::compute_fluxes_and_store_3d(
     auto              riemann_state = riemann_hydro<3>(qL, qR, m_hydro_settings, m_eos);
     HydroState<dim> & flux = riemann_state.flux;
     auto &            ustar = riemann_state.ustar;
-    auto &            phistar = riemann_state.phistar;
+    auto &            phistar0 = riemann_state.phistar0;
+    auto &            phistar1 = riemann_state.phistar1;
 
     my_swap(flux[Hydro::IU], flux[Hydro::IW]);
 
-    flux[Hydro::IA0] = ustar * phistar;
+    flux[Hydro::IA0] = ustar * phistar0;
+    flux[Hydro::IA1] = ustar * phistar1;
 
     // step 4 : accumulate flux in current cell
     const auto flux_cur = flux * dtdS_over_dV_cur;
