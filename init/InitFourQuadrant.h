@@ -53,7 +53,7 @@ private:
   const int32_t m_local_num_octants;
 
   //! FourQuadrant problem specific parameters (used on device)
-  FourQuadrantParams m_params;
+  core::FourQuadrantParams m_params;
 
   //! Initial states (one per region, conservative variables)
   InitialStates<dim, device_t> m_initial_states;
@@ -142,7 +142,7 @@ private:
   const int32_t m_local_num_octants;
 
   //! FourQuadrant problem specific parameters (used on device)
-  FourQuadrantParams m_params;
+  core::FourQuadrantParams m_params;
 
   //! which level should we look at
   int m_level_refine;

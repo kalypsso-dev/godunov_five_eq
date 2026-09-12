@@ -203,7 +203,7 @@ InitFourQuadrant<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solv
   const int         level_max = solver.hydro_params().level_max;
 
   const auto nb_regions = InitFourQuadrantDataFunctor<dim, device_t>::NB_REGIONS;
-  const auto four_quad_params = FourQuadrantParams(config_map);
+  const auto four_quad_params = core::FourQuadrantParams(config_map);
   auto       primitive_initial_states = getRiemannConfig<dim>(four_quad_params.config_number);
 
   InitialStates<dim, device_t> initial_states("Initial state", static_cast<uint>(nb_regions));
