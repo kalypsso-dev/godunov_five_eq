@@ -11,6 +11,7 @@
 
 #include <godunov_five_eq/init/InitCircleAdvection.h>
 #include <godunov_five_eq/init/InitDropletAdvection.h>
+#include <godunov_five_eq/init/InitFourQuadrant.h>
 #include <godunov_five_eq/init/InitJet.h>
 #include <godunov_five_eq/init/InitRichtmyerMeshkov.h>
 #include <godunov_five_eq/init/InitShockBubble.h>
@@ -59,6 +60,10 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     {
       InitDropletAdvection<dim, device_t>::apply(solver);
     }
+    else if (!problem_name.compare("four_quadrant"))
+    {
+      InitFourQuadrant<dim, device_t>::apply(solver);
+    }
     else if (!problem_name.compare("jet"))
     {
       InitJet<dim, device_t>::apply(solver);
@@ -97,9 +102,8 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     // }
     else
     {
-      KALYPSSO_WARN("Problem : {} is not recognized / implemented.", problem_name);
-      KALYPSSO_WARN("Use default - two_fluid_shock_tube");
-      // InitTwoFluidShockTube<dim, device_t>::apply(solver);
+      KALYPSSO_ERROR("Problem : {} is not recognized / implemented.", problem_name);
+      Kokkos::abort("Unknown problem. Check your input parameter file.");
     }
 
     // print mesh info
