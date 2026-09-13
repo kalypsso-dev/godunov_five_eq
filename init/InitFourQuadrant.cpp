@@ -216,7 +216,6 @@ InitFourQuadrant<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solv
     using Hydro = core::models::Hydro;
 
     auto hydro_state = primitive_initial_states[i_region];
-    auto i_mat = static_cast<size_t>(get_material_id_in_region(i_region, config_map));
 
     // primitive variables for FiveEq model
     HydroState<dim> fiveeq_state;
