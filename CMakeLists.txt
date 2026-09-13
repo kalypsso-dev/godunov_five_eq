@@ -14,16 +14,18 @@ set(GODUNOV_FIVE_EQ_SRCS
     init/InitCircleAdvection.h
     init/InitDropletAdvection.cpp
     init/InitDropletAdvection.h
+    init/InitFourQuadrant.cpp
+    init/InitFourQuadrant.h
     init/InitJet.cpp
     init/InitJet.h
-    init/InitStaticDroplet.cpp
-    init/InitStaticDroplet.h
     init/InitRichtmyerMeshkov.cpp
     init/InitRichtmyerMeshkov.h
     init/InitShockBubble.cpp
     init/InitShockBubble.h
     init/InitSphericalImplosion.cpp
     init/InitSphericalImplosion.h
+    init/InitStaticDroplet.cpp
+    init/InitStaticDroplet.h
     init/InitTriplePoint.cpp
     init/InitTriplePoint.h
     init/InitTwoFluidShockTube.cpp
