@@ -265,8 +265,6 @@ InitFourQuadrant<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solv
 
   Kokkos::deep_copy(initial_states, initial_states_host);
 
-  //////auto       initial_states = get_initial_states<dim, device_t>(config_map, nb_regions);
-
   constexpr bool do_reset_ghosts = true;
   solver.update_mesh(do_reset_ghosts);
 
