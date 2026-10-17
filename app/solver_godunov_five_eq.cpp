@@ -114,7 +114,7 @@ run_simulation(ParallelEnv const &       par_env,
       dynamic_cast<godunov_five_eq::SolverGodunovFiveEq<dim, device_t> *>(solver);
     const std::string mesh_filename = derived_solver->output_basename() + ".p4est";
     derived_solver->template save_p4est_mesh<dim>(mesh_filename,
-                                                  derived_solver->amr_mesh()->forest());
+                                                  derived_solver->amr_mgr().get_forest());
   }
 
   // save records of mixing computation monitoring
@@ -170,9 +170,9 @@ run_simulation(ParallelEnv const &       par_env,
         kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
           solver_five_eq->U(),
           0,
-          solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+          solver_five_eq->amr_mgr().get_nb_owned(),
           IX,
-          solver_five_eq->mesh_map()->orchard_keys(),
+          solver_five_eq->amr_mgr().get_orchard_keys(),
           std::vector<int32_t>{ id },
           std::vector<std::string>{ name },
           output_prefix,
@@ -199,9 +199,9 @@ run_simulation(ParallelEnv const &       par_env,
         kalypsso::core::ComputeDataSliceAlongLine<dim, device_t>::apply(
           derived_quantity,
           0,
-          solver_five_eq->mesh_map()->get_amr_mesh_info().local_num_quadrants(),
+          solver_five_eq->amr_mgr().get_nb_owned(),
           IX,
-          solver_five_eq->mesh_map()->orchard_keys(),
+          solver_five_eq->amr_mgr().get_orchard_keys(),
           std::vector<int32_t>{ 0 },
           std::vector<std::string>{ name },
           output_prefix,
@@ -350,7 +350,7 @@ main(int argc, char * argv[])
     const auto dim = kalypsso::get_dim(config_map);
     assertm(dim == 2 or dim == 3, "[solver_godunov_five_eq] Wrong dimension");
 
-    // run some test
+    // run simulation
     if (dim == 2)
     {
       kalypsso::run_simulation<2, kalypsso::DefaultDevice>(par_env, config_map, argc, argv);

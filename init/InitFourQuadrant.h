@@ -43,7 +43,7 @@ public:
   static constexpr int NB_REGIONS = 4;
 
 private:
-  //! heavy data
+  //! conservative variables to be initialized
   DataArrayBlock_t m_Udata;
 
   //! list of orchard key of the mesh
@@ -129,7 +129,7 @@ public:
   {};
 
 private:
-  //! heavy hydrodynamics data
+  //! conservative variables
   DataArrayBlock_t m_Udata;
 
   //! list of orchard key of the mesh
@@ -169,7 +169,7 @@ public:
     , m_scaling_factor(get_scaling_factor(config_map))
     , m_xyz_min(get_xyz_min<dim>(config_map)){};
 
-  // static method which does it all: create and execute functor
+  //! static method which does it all: create and execute functor
   static void
   apply(DataArrayBlock_t const &             Udata,
         orchard_key_view_t<device_t> const & orchard_keys,

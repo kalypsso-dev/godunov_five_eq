@@ -81,7 +81,6 @@ void
 InitJet<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solver)
 {
 
-  auto              amr_mesh = solver.amr_mesh();
   ConfigMap const & config_map = solver.config_map();
 
   const auto nb_regions = InitJetDataFunctor<dim, device_t>::NB_REGIONS;
@@ -95,8 +94,8 @@ InitJet<dim, device_t>::apply(SolverGodunovFiveEq<dim, device_t> & solver)
 
   // first init of Udata
   InitJetDataFunctor<dim, device_t>::apply(solver.U(),
-                                           solver.mesh_map()->orchard_keys(),
-                                           solver.amr_mesh()->local_num_quadrants(),
+                                           solver.amr_mgr().get_orchard_keys(),
+                                           solver.amr_mgr().get_nb_owned(),
                                            initial_states,
                                            config_map);
 
