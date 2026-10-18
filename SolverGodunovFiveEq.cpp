@@ -87,7 +87,8 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
   , m_U_RK()
   , m_bc_types(BorderConditionsConfig<BC_HYDRO>::read_border_condition<dim>(config_map, par_env))
 #ifdef KALYPSSO_CORE_USE_HDF5
-  , m_hdf5_writer(std::make_shared<HDF5_Xdmf_Writer_t>(m_par_env, m_config_map, m_amr_mgr.get_mesh_map()))
+  , m_hdf5_writer(
+      std::make_shared<HDF5_Xdmf_Writer_t>(m_par_env, m_config_map, m_amr_mgr.get_mesh_map()))
 #endif // KALYPSSO_CORE_USE_HDF5
 {
   // TODO: evaluate if we should abort earlier, i.e. before this constructor
@@ -373,15 +374,14 @@ SolverGodunovFiveEq<dim, device_t>::compute_dt_local()
   real_t invDt = ZERO_F;
 
   // call device functor - compute invDt
-  ComputeDtFiveEqFunctor<dim, device_t>::apply(
-    m_config_map,
-    m_amr_mgr.get_orchard_keys(),
-    m_amr_mgr.get_nb_owned(),
-    m_hydro_settings,
-    m_block_sizes,
-    m_U,
-    m_eos,
-    invDt);
+  ComputeDtFiveEqFunctor<dim, device_t>::apply(m_config_map,
+                                               m_amr_mgr.get_orchard_keys(),
+                                               m_amr_mgr.get_nb_owned(),
+                                               m_hydro_settings,
+                                               m_block_sizes,
+                                               m_U,
+                                               m_eos,
+                                               invDt);
 
   dt = m_hydro_settings.cfl / invDt;
 
