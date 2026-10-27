@@ -15,8 +15,7 @@
 #include <kalypsso/core/kokkos_shared.h>
 #include <kalypsso/core/kalypsso_data_container.h>
 #include <kalypsso/core/HydroParams.h>
-#include <kalypsso/core/AMRmesh.h>
-#include <kalypsso/core/MeshMap.h>
+#include <kalypsso/core/AMRManager.h>
 #include <kalypsso/core/config_utils.h> // for get_block_sizes
 
 // for surface tension support (should it be included in GodunovImplemBase ?)
@@ -69,17 +68,11 @@ public:
   using HDF5_Xdmf_Writer_t = HDF5_Xdmf_Writer<dim, device_t>;
 #endif
 
-  GodunovImplemBase(ParallelEnv const &      par_env,
-                    HydroParams const &      params,
-                    ConfigMap const &        config_map,
-                    ProfilingManager &       profiling_manager,
-                    AMRmesh<dim> &           amr_mesh,
-                    MeshMap<dim, device_t> & mesh_map
-#ifdef KALYPSSO_CORE_USE_MPI
-                    ,
-                    MeshGhostsExchanger<dim, real_t, device_t> & mesh_ghosts_exchanger
-#endif // KALYPSSO_CORE_USE_MPI
-                    )
+  GodunovImplemBase(ParallelEnv const &               par_env,
+                    HydroParams const &               params,
+                    ConfigMap const &                 config_map,
+                    ProfilingManager &                profiling_manager,
+                    core::AMRManager<dim, device_t> & amr_mgr)
     : m_par_env(par_env)
     , m_params(params)
     , m_hydro_settings(config_map)
@@ -89,14 +82,10 @@ public:
     , m_is_brick_periodic(get_brick_periodicity<dim>(config_map))
     , m_problem_name(config_map.getString("hydro", "problem", "unknown"))
     , m_profiling_mgr(profiling_manager)
-    , m_amr_mesh(amr_mesh)
-    , m_mesh_map(mesh_map)
-#ifdef KALYPSSO_CORE_USE_MPI
-    , m_mesh_ghosts_exchanger(mesh_ghosts_exchanger)
-#endif // KALYPSSO_CORE_USE_MPI
+    , m_amr_mgr(amr_mgr)
     , m_eos(config_map)
     , m_thinc_params(config_map)
-    , m_sifd(par_env, config_map, amr_mesh, mesh_map)
+    , m_sifd(par_env, config_map, amr_mgr)
   {}
 
   virtual ~GodunovImplemBase() = default;
@@ -131,7 +120,7 @@ public:
 
 #ifdef KALYPSSO_CORE_USE_MPI
     KALYPSSO_PROFILING_REGION_DEVICE(m_profiling_mgr, NUM_SCHEME_EXCHANGE_Q_MIRROR_GHOST);
-    this->m_mesh_ghosts_exchanger.exchange_inplace(q_ghosted_mg);
+    this->m_amr_mgr.get_mesh_ghosts_exchanger().exchange_inplace(q_ghosted_mg);
 #endif // KALYPSSO_CORE_USE_MPI
 
   } // mpi_exchange_mirrors_and_ghosts
@@ -153,7 +142,7 @@ public:
     //   u_in,
     //   u_out,
     //   fm,
-    //   this->m_mesh_map.get_amr_mesh_info().local_num_quadrants(),
+    //   this->m_amr_mgr.get_nb_owned(),
     //   HALF_F * dt);
 
   } // add_gravity_source_term
@@ -193,16 +182,8 @@ public:
   //! Profiling manager
   ProfilingManager & m_profiling_mgr;
 
-  //! AMR mesh for accessing mesh sizes (number of owned, mirror, ghost, outside quadrants)
-  AMRmesh<dim> const & m_amr_mesh;
-
-  //! mesh map is a helper class for accessing orchard keys
-  MeshMap<dim, device_t> & m_mesh_map;
-
-#ifdef KALYPSSO_CORE_USE_MPI
-  //! MPI communications to exchange ghost block userdata
-  MeshGhostsExchanger<dim, real_t, device_t> & m_mesh_ghosts_exchanger;
-#endif // KALYPSSO_CORE_USE_MPI
+  //! AMR manager
+  core::AMRManager<dim, device_t> & m_amr_mgr;
 
   //! Equation of state wrapper
   EosWrapper_t<device_t> m_eos;

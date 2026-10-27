@@ -76,12 +76,7 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
   , m_hydro_settings(config_map)
   , m_eos(config_map)
   , m_eos_host(config_map)
-  , m_amr_mesh(std::make_shared<AMRmesh<dim>>(par_env, config_map))
-  , m_mesh_map(std::make_shared<MeshMap<dim, device_t>>(config_map, par_env))
-#ifdef KALYPSSO_CORE_USE_MPI
-  , m_mesh_ghosts_exchanger(config_map, par_env, *m_amr_mesh, *m_mesh_map)
-#endif // KALYPSSO_CORE_USE_MPI
-  , m_amr_context(0)
+  , m_amr_mgr(par_env, config_map)
   , m_time_integrator(TimeIntegratorConfig::get_time_integrator(config_map))
   , m_conservativity_check()
   , m_mixing_monitor(config_map)
@@ -92,7 +87,8 @@ SolverGodunovFiveEq<dim, device_t>::SolverGodunovFiveEq(ParallelEnv const & par_
   , m_U_RK()
   , m_bc_types(BorderConditionsConfig<BC_HYDRO>::read_border_condition<dim>(config_map, par_env))
 #ifdef KALYPSSO_CORE_USE_HDF5
-  , m_hdf5_writer(std::make_shared<HDF5_Xdmf_Writer_t>(m_par_env, m_config_map, m_mesh_map))
+  , m_hdf5_writer(
+      std::make_shared<HDF5_Xdmf_Writer_t>(m_par_env, m_config_map, m_amr_mgr.get_mesh_map()))
 #endif // KALYPSSO_CORE_USE_HDF5
 {
   // TODO: evaluate if we should abort earlier, i.e. before this constructor
@@ -216,7 +212,7 @@ SolverGodunovFiveEq<dim, device_t>::resize_auxiliary_data()
 
   KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_RESIZE_AUX);
 
-  m_Uhost.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
+  m_Uhost.resize(m_amr_mgr.get_nb_total());
 
   assertm(m_godunov_implem != nullptr,
           "[SolverGodunovFiveEq::resize_auxiliary_data] godunov_implem pointer has invalid value.");
@@ -232,12 +228,12 @@ void
 SolverGodunovFiveEq<dim, device_t>::resize_solver_data()
 {
 
-  m_U.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
-  m_U2.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
+  m_U.resize(m_amr_mgr.get_nb_total());
+  m_U2.resize(m_amr_mgr.get_nb_total());
 
   if (m_time_integrator == +TimeIntegrator::RK2_SSP)
   {
-    m_U_RK.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
+    m_U_RK.resize(m_amr_mgr.get_nb_total());
   }
 
   resize_auxiliary_data();
@@ -251,25 +247,7 @@ void
 SolverGodunovFiveEq<dim, device_t>::update_mesh(bool reset_p4est_ghost)
 {
 
-  if (reset_p4est_ghost)
-  {
-    m_amr_mesh->reset_ghost();
-  }
-
-  // update number of outside quad
-  m_mesh_map->compute_outside_quad_info(m_amr_mesh->forest(), m_amr_mesh->ghost());
-
-  // update orchard keys array and hashmap
-  m_mesh_map->update_hashmap(m_amr_mesh->forest(), m_amr_mesh->ghost(), true);
-
-  // update orchard keys in mirror quadrants (useful for computing primitive variables in mirror and
-  // doing MPI comm)
-  m_mesh_map->update_mirror_orchard_keys(m_amr_mesh->ghost());
-
-  // recompute/update number of quadrants per types (owned, ghost, outside, outside_ghost)
-  m_mesh_map->update_amr_mesh_info(m_amr_mesh->forest(), m_amr_mesh->ghost());
-
-  m_mesh_map->update_conformal_status();
+  m_amr_mgr.rebuild(reset_p4est_ghost);
 
 } // SolverGodunovFiveEq<dim, device_t>::update_mesh
 
@@ -298,28 +276,29 @@ SolverGodunovFiveEq<dim, device_t>::do_amr_cycle()
   synchronize_mpi_ghost_data(m_U);
   fill_outside_quadrants(m_U);
 
-  // 2. resize AMR flags (stored in AMRContext)
-  //    and mark cell for refinement / coarsening
-  m_amr_context.resize_amrflags(m_mesh_map->get_amr_mesh_info().local_num_quadrants());
-  mark_cells();
+  // 2. Compute refinement / coarsening flags (array of flags will be resized inside)
+  compute_refine_flags();
 
   // 3. adapt mesh (refine/coarsen/balance) + re-compute connectivity
 
-  // 3.1 store hashmap before mesh adaptation
-  auto hashmap_before_amr = m_mesh_map->hashmap_clone();
+  // 3.1 store hashmap and orchard keys before mesh adaptation
+  auto old_hashmap = m_amr_mgr.get_hashmap_clone();
+
+  // old orchard keys are needed in case, one wants to compute stencil computation over the old map
+  // this happens when doing prolongation with linear extrapolation using limited slopes
+  // (limited slopes require stencil computations).
+  auto old_keys = m_amr_mgr.get_orchard_keys_clone();
 
   // 3.2 adapt mesh (apply refinement using p4est)
-  adapt_mesh();
+  {
+    KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_ADAPT_MESH);
+    m_amr_mgr.rebuild_from_context();
+  }
 
   // 4. map data to new data array
-  map_userdata_after_adapt(hashmap_before_amr);
+  map_userdata_after_adapt(old_hashmap, old_keys);
 
-  // 5. update orchard keys and hashmap (so that ghost is also up to date)
-  // This is probably (TBC) not needed because already done above inside adapt_mesh
-  // constexpr bool do_reset_ghosts = true;
-  // update_mesh(do_reset_ghosts);
-
-  // 6. resize auxiliary data
+  // 5. resize auxiliary data
   resize_auxiliary_data();
 
   // call base class member (increment number of AMR cycles done)
@@ -347,25 +326,23 @@ SolverGodunovFiveEq<dim, device_t>::do_load_balancing()
   if (m_par_env.nRanks() > 1)
   {
 
-    MeshPartitioner<dim, device_t> mesh_partitioner(m_config_map, m_par_env);
-
     // 1. partition mesh
     {
       KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_PARTITION_MESH);
-      mesh_partitioner.partition_mesh(this->m_amr_mesh->forest());
+      m_amr_mgr.repartition_mesh();
     }
 
     // 2. partition user data from U to U2, U2 is reallocated
     {
       KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_PARTITION_USERDATA);
-      mesh_partitioner.repartition_userdata(m_U, m_U2);
+      m_amr_mgr.repartition_userdata(m_U, m_U2);
     }
 
     // 3. update orchard keys and hashmap (so that ghost is also up to date)
     {
       KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, LOAD_BALANCING_UPDATE_MESH);
       constexpr bool do_reset_ghosts = true;
-      update_mesh(do_reset_ghosts);
+      m_amr_mgr.rebuild(do_reset_ghosts);
     }
 
     {
@@ -397,15 +374,14 @@ SolverGodunovFiveEq<dim, device_t>::compute_dt_local()
   real_t invDt = ZERO_F;
 
   // call device functor - compute invDt
-  ComputeDtFiveEqFunctor<dim, device_t>::apply(
-    m_config_map,
-    m_mesh_map->orchard_keys(),
-    m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
-    m_hydro_settings,
-    m_block_sizes,
-    m_U,
-    m_eos,
-    invDt);
+  ComputeDtFiveEqFunctor<dim, device_t>::apply(m_config_map,
+                                               m_amr_mgr.get_orchard_keys(),
+                                               m_amr_mgr.get_nb_owned(),
+                                               m_hydro_settings,
+                                               m_block_sizes,
+                                               m_U,
+                                               m_eos,
+                                               invDt);
 
   dt = m_hydro_settings.cfl / invDt;
 
@@ -441,7 +417,7 @@ SolverGodunovFiveEq<dim, device_t>::next_iteration_impl()
     {
       // save p4est mesh for restart
       const std::string mesh_filename = this->output_basename() + ".p4est";
-      this->save_p4est_mesh<dim>(mesh_filename, m_amr_mesh->forest());
+      this->save_p4est_mesh<dim>(mesh_filename, m_amr_mgr.get_forest());
 
       KALYPSSO_INFO("Checkpoint at time t={} step={} dt={}", m_t, m_iteration, m_dt);
 
@@ -495,8 +471,7 @@ SolverGodunovFiveEq<dim, device_t>::next_iteration_impl()
   godunov_unsplit(m_dt);
 
   // compute number of cell-update in current MPI proc.
-  m_total_num_cell_updates +=
-    static_cast<uint64_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants() * m_U.num_cells());
+  m_total_num_cell_updates += static_cast<uint64_t>(m_amr_mgr.get_nb_owned() * m_U.num_cells());
 
 } // SolverGodunovFiveEq<dim, device_t>::next_iteration_impl
 
@@ -520,8 +495,7 @@ SolverGodunovFiveEq<dim, device_t>::godunov_unsplit(real_t dt)
   }
   else if (m_time_integrator == +TimeIntegrator::RK2_SSP)
   {
-    const auto num_octants =
-      static_cast<int32_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
+    const auto num_octants = static_cast<int32_t>(m_amr_mgr.get_nb_total());
 
     // we need conservative variables in ghost cell to be up to date
     synchronize_mpi_ghost_data(m_U);
@@ -577,7 +551,7 @@ SolverGodunovFiveEq<dim, device_t>::print_monitoring_info()
 
   auto monitor = AMRMeshMonitoring<dim, device_t>(m_config_map);
 
-  monitor.print_level_info(m_par_env, *m_mesh_map);
+  monitor.print_level_info(m_par_env, *m_amr_mgr.get_mesh_map());
 
   // also print memory footprint
   KALYPSSO_INFO("Effective memory footprint (per MPI process) : {:.2f} MBytes",
@@ -596,8 +570,8 @@ SolverGodunovFiveEq<dim, device_t>::print_monitoring_info_final()
 {
 
   print_monitoring_info();
-
   m_profiling_mgr.print_timings();
+  m_amr_mgr.print_timings(m_profiling_mgr.get_total_time(), std::string("AMR cycle"));
 
   // compute total number of cell-updates by reducing over all MPI processes.
   uint64_t cell_updates = 0;
@@ -628,12 +602,12 @@ template <size_t dim, typename device_t>
 void
 SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
 {
-  const auto num_octants = m_mesh_map->get_amr_mesh_info().local_num_quadrants();
+  const auto num_octants = m_amr_mgr.get_nb_owned();
 
   m_conservativity_check.register_value(m_U,
                                         0,
                                         num_octants,
-                                        m_mesh_map->orchard_keys(),
+                                        m_amr_mgr.get_orchard_keys(),
                                         models::FiveEq<dim>::IAD0,
                                         "density0",
                                         m_config_map,
@@ -643,7 +617,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
   m_conservativity_check.register_value(m_U,
                                         0,
                                         num_octants,
-                                        m_mesh_map->orchard_keys(),
+                                        m_amr_mgr.get_orchard_keys(),
                                         models::FiveEq<dim>::IAD1,
                                         "density1",
                                         m_config_map,
@@ -653,7 +627,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
   m_conservativity_check.register_value(m_U,
                                         0,
                                         num_octants,
-                                        m_mesh_map->orchard_keys(),
+                                        m_amr_mgr.get_orchard_keys(),
                                         models::FiveEq<dim>::IE,
                                         "total_energy",
                                         m_config_map,
@@ -663,7 +637,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
   m_conservativity_check.register_value(m_U,
                                         0,
                                         num_octants,
-                                        m_mesh_map->orchard_keys(),
+                                        m_amr_mgr.get_orchard_keys(),
                                         models::FiveEq<dim>::IU,
                                         "rho_u",
                                         m_config_map,
@@ -673,7 +647,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
   m_conservativity_check.register_value(m_U,
                                         0,
                                         num_octants,
-                                        m_mesh_map->orchard_keys(),
+                                        m_amr_mgr.get_orchard_keys(),
                                         models::FiveEq<dim>::IV,
                                         "rho_v",
                                         m_config_map,
@@ -685,7 +659,7 @@ SolverGodunovFiveEq<dim, device_t>::register_volume_integrals(bool is_reference)
     m_conservativity_check.register_value(m_U,
                                           0,
                                           num_octants,
-                                          m_mesh_map->orchard_keys(),
+                                          m_amr_mgr.get_orchard_keys(),
                                           models::FiveEq<dim>::IW,
                                           "rho_w",
                                           m_config_map,
@@ -727,7 +701,7 @@ SolverGodunovFiveEq<dim, device_t>::total_mem_size_in_bytes()
   total += m_godunov_implem->total_mem_size_in_bytes();
 
 #ifdef KALYPSSO_CORE_USE_MPI
-  total += m_mesh_ghosts_exchanger.allocated_size_in_bytes();
+  total += m_amr_mgr.get_mesh_ghosts_exchanger().allocated_size_in_bytes();
 #endif
 
   return total;
@@ -740,8 +714,7 @@ auto
 SolverGodunovFiveEq<dim, device_t>::get_derived_quantity(DERIVED_QUANTITY derived_quantity)
   -> DataArrayBlock_t
 {
-  const auto local_num_quadrants =
-    static_cast<int64_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants());
+  const auto local_num_quadrants = static_cast<int64_t>(m_amr_mgr.get_nb_owned());
 
   return ComputeDerivedQuantities<dim, device_t>::run(m_U,
                                                       derived_quantity,
@@ -786,10 +759,10 @@ void
 SolverGodunovFiveEq<dim, device_t>::mixing_monitor_record()
 {
 
-  const auto num_octants = m_mesh_map->get_amr_mesh_info().local_num_quadrants();
+  const auto num_octants = m_amr_mgr.get_nb_owned();
 
   m_mixing_monitor.record(
-    m_U, m_mesh_map->orchard_keys(), 0, num_octants, models::FiveEq<dim>::IA0, m_t, m_par_env);
+    m_U, m_amr_mgr.get_orchard_keys(), 0, num_octants, models::FiveEq<dim>::IA0, m_t, m_par_env);
 
 } // SolverGodunovFiveEq<dim, device_t>::mixing_monitor_record
 
@@ -811,8 +784,7 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
 
   [[maybe_unused]] uint64_t total_num_bytes = 0;
 
-  const auto local_num_quadrants =
-    static_cast<int64_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants());
+  const auto local_num_quadrants = static_cast<int64_t>(m_amr_mgr.get_nb_owned());
 
   // actual writing (cell data)
   {
@@ -829,7 +801,7 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
     io_timer.start();
     m_hdf5_writer->open(basename, outputDir);
     total_num_bytes += m_hdf5_writer->write_header(m_t);
-    total_num_bytes += m_hdf5_writer->write_amr_metadata(m_mesh_map->orchard_keys_host());
+    total_num_bytes += m_hdf5_writer->write_amr_metadata(m_amr_mgr.get_orchard_keys_host());
 
     // write time and number of time steps
     m_hdf5_writer->write_scalar_attribute("run", "time", m_t);
@@ -877,16 +849,16 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
     {
       if (is_present(write_variables, std::string{ "rho_mix_schlieren" }))
       {
-        auto rho_mix_schlieren_d = core::ComputeSchlieren<dim, device_t>::run(
-          m_config_map,
-          m_par_env,
-          m_mesh_map->hashmap(),
-          m_mesh_map->orchard_keys(),
-          m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
-          m_block_sizes,
-          m_brick_sizes,
-          m_is_brick_periodic,
-          m_U);
+        auto rho_mix_schlieren_d =
+          core::ComputeSchlieren<dim, device_t>::run(m_config_map,
+                                                     m_par_env,
+                                                     m_amr_mgr.get_hashmap(),
+                                                     m_amr_mgr.get_orchard_keys(),
+                                                     m_amr_mgr.get_nb_owned(),
+                                                     m_block_sizes,
+                                                     m_brick_sizes,
+                                                     m_is_brick_periodic,
+                                                     m_U);
         auto rho_mix_schlieren_h =
           DataArrayBlock_t::create_host_mirror_view_and_copy(rho_mix_schlieren_d);
 
@@ -964,7 +936,7 @@ SolverGodunovFiveEq<dim, device_t>::save_solution_hdf5([[maybe_unused]] bool pur
 
     if (write_conformal_status)
     {
-      m_hdf5_writer->write_quadrant_leaf_scalar(m_mesh_map->conformal_status_host(),
+      m_hdf5_writer->write_quadrant_leaf_scalar(m_amr_mgr.get_conformal_status_host(),
                                                 "conformal_status");
     }
 
@@ -994,7 +966,7 @@ SolverGodunovFiveEq<dim, device_t>::synchronize_mpi_ghost_data(
 
   KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_SYNC_MPI_GHOSTS);
 
-  m_mesh_ghosts_exchanger.exchange(data);
+  m_amr_mgr.get_mesh_ghosts_exchanger().exchange(data);
 
 #endif // KALYPSSO_CORE_USE_MPI
 
@@ -1008,14 +980,14 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t cons
 {
 
   // assert data has expected size (in terms of number of octants/quadrants)
-  assertm(data.num_quadrants() == m_mesh_map->get_amr_mesh_info().local_num_quadrants_total(),
+  assertm(data.num_quadrants() == m_amr_mgr.get_nb_total(),
           "[SolverGodunovFiveEq::fill_outside_quadrants] Input array has the wrong size.");
 
   // apply border condition, this will be a no-op when mesh is periodic
   FillOutsideCellFunctor<dim, device_t>::apply(data,
-                                               m_mesh_map->get_amr_mesh_info(),
-                                               m_mesh_map->orchard_keys(),
-                                               m_mesh_map->hashmap(),
+                                               m_amr_mgr.get_amr_mesh_info(),
+                                               m_amr_mgr.get_orchard_keys(),
+                                               m_amr_mgr.get_hashmap(),
                                                m_config_map,
                                                m_par_env);
 
@@ -1024,9 +996,9 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t cons
   {
 
     FillOutsideJet<dim, device_t>::apply(data,
-                                         m_mesh_map->get_amr_mesh_info(),
-                                         m_mesh_map->orchard_keys(),
-                                         m_mesh_map->hashmap(),
+                                         m_amr_mgr.get_amr_mesh_info(),
+                                         m_amr_mgr.get_orchard_keys(),
+                                         m_amr_mgr.get_hashmap(),
                                          m_eos_host,
                                          m_config_map);
   }
@@ -1036,11 +1008,10 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t cons
 
     if (shock_bubble_params.use_inlet_bc)
     {
-
       FillOutsideShockBubble<dim, device_t>::apply(data,
-                                                   m_mesh_map->get_amr_mesh_info(),
-                                                   m_mesh_map->orchard_keys(),
-                                                   m_mesh_map->hashmap(),
+                                                   m_amr_mgr.get_amr_mesh_info(),
+                                                   m_amr_mgr.get_orchard_keys(),
+                                                   m_amr_mgr.get_hashmap(),
                                                    m_config_map);
     }
   }
@@ -1051,7 +1022,7 @@ SolverGodunovFiveEq<dim, device_t>::fill_outside_quadrants(DataArrayBlock_t cons
 // =======================================================
 template <size_t dim, typename device_t>
 void
-SolverGodunovFiveEq<dim, device_t>::mark_cells()
+SolverGodunovFiveEq<dim, device_t>::compute_refine_flags()
 {
 
   KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_MARK_CELLS);
@@ -1061,7 +1032,7 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
    * by 8)
    */
 
-  m_amr_context.reset_amrflags();
+  m_amr_mgr.reset_amr_flags();
 
   // which refine criterion to use ?
   auto const refine_threshold = m_config_map.getReal("amr", "epsilon_refine", KALYPSSO_NUM(0.01));
@@ -1086,22 +1057,20 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
                                          ivar_to_refine,
                                          epsilon_lohner };
 
-      const auto local_num_quadrants =
-        static_cast<int64_t>(m_mesh_map->get_amr_mesh_info().local_num_quadrants());
+      const auto local_num_quadrants = static_cast<int64_t>(m_amr_mgr.get_nb_owned());
 
       // compute derived quantity
       const auto derived_quantity = ComputeDerivedQuantities<dim, device_t>::run(
         m_U, name, m_hydro_settings, m_eos, 0, local_num_quadrants, m_par_env);
 
-      ::kalypsso::ComputeRefineFlags<dim, device_t>::run(
-        m_mesh_map->hashmap(),
-        m_mesh_map->orchard_keys(),
-        m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
-        m_brick_sizes,
-        m_is_brick_periodic,
-        derived_quantity,
-        m_amr_context.m_amrflags_d,
-        refine_params);
+      ComputeRefineFlags<dim, device_t>::run(m_amr_mgr.get_hashmap(),
+                                             m_amr_mgr.get_orchard_keys(),
+                                             m_amr_mgr.get_nb_owned(),
+                                             m_brick_sizes,
+                                             m_is_brick_periodic,
+                                             derived_quantity,
+                                             m_amr_mgr.get_amr_flags_on_device(),
+                                             refine_params);
     }
     else if (name == "volume_fractions")
     {
@@ -1114,13 +1083,13 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
                                          ivar_to_refine,
                                          epsilon_lohner };
 
-      ComputeRefineFlags<dim, device_t>::run(m_mesh_map->hashmap(),
-                                             m_mesh_map->orchard_keys(),
-                                             m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
+      ComputeRefineFlags<dim, device_t>::run(m_amr_mgr.get_hashmap(),
+                                             m_amr_mgr.get_orchard_keys(),
+                                             m_amr_mgr.get_nb_owned(),
                                              m_brick_sizes,
                                              m_is_brick_periodic,
                                              m_U,
-                                             m_amr_context.m_amrflags_d,
+                                             m_amr_mgr.get_amr_flags_on_device(),
                                              refine_params);
     }
     else
@@ -1145,88 +1114,56 @@ SolverGodunovFiveEq<dim, device_t>::mark_cells()
                                          ivar_to_refine,
                                          epsilon_lohner };
 
-      ::kalypsso::ComputeRefineFlags<dim, device_t>::run(
-        m_mesh_map->hashmap(),
-        m_mesh_map->orchard_keys(),
-        m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
-        m_brick_sizes,
-        m_is_brick_periodic,
-        m_U,
-        m_amr_context.m_amrflags_d,
-        refine_params);
+      ComputeRefineFlags<dim, device_t>::run(m_amr_mgr.get_hashmap(),
+                                             m_amr_mgr.get_orchard_keys(),
+                                             m_amr_mgr.get_nb_owned(),
+                                             m_brick_sizes,
+                                             m_is_brick_periodic,
+                                             m_U,
+                                             m_amr_mgr.get_amr_flags_on_device(),
+                                             refine_params);
     }
   }
 
   // amr context will adapt mesh on CPU, so we need flags on host
-  Kokkos::deep_copy(m_amr_context.m_amrflags_h, m_amr_context.m_amrflags_d);
+  Kokkos::deep_copy(m_amr_mgr.get_amr_flags_on_host(), m_amr_mgr.get_amr_flags_on_device());
 
-} // SolverGodunovFiveEq<dim, device_t>::mark_cells
-
-// =======================================================
-// =======================================================
-template <size_t dim, typename device_t>
-void
-SolverGodunovFiveEq<dim, device_t>::adapt_mesh()
-{
-
-  KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_ADAPT_MESH);
-
-  //
-  // apply AMR cycle: refine + coarsen + 2:1 balance
-  //
-  [[maybe_unused]] const auto changed = m_amr_context.adapt_mesh(m_amr_mesh->forest());
-  // KALYPSSO_INFO("Mesh changed ? {}", changed);
-
-  // update orchard key, hashmap, etc....
-  // const auto do_reset_ghosts = true;
-  update_mesh(changed);
-
-} // SolverGodunovFiveEq<dim, device_t>::adapt_mesh
+} // SolverGodunovFiveEq<dim, device_t>::compute_refine_flags
 
 // =======================================================
 // =======================================================
 template <size_t dim, typename device_t>
 void
 SolverGodunovFiveEq<dim, device_t>::map_userdata_after_adapt(
-  amr_hashmap_t const & amr_hashmap_before_adapt)
+  amr_hashmap_t const &               old_hashmap,
+  core::OrchardKeys<device_t> const & old_keys)
 {
 
   KALYPSSO_PROFILING_REGION_HOST(m_profiling_mgr, AMR_CYCLE_USERDATA_REMAP);
 
-  // clone the AMR orchard keys of the old mesh.
-  //
-  // they are needed in case, one wants to compute stencil computation over the old map
-  // this happens when doing prolongation with linear extrapolation using limited slopes
-  // (limited slopes require stencil computations).
-  auto orchard_keys_device_old = m_mesh_map->orchard_keys_clone();
-
-  // update the AMR keys for the new mesh
-  m_mesh_map->update_orchard_keys(m_amr_mesh->forest(), m_amr_mesh->ghost());
-
-  UserDataRemapper<dim, device_t> userdataRemapper(
-    amr_hashmap_before_adapt,
-    m_mesh_map->orchard_keys(),
-    orchard_keys_device_old,
-    m_mesh_map->get_amr_mesh_info().local_num_quadrants(),
-    m_block_sizes,
-    m_config_map);
+  UserDataRemapper<dim, device_t> userdataRemapper(old_hashmap,
+                                                   m_amr_mgr.get_orchard_keys(),
+                                                   old_keys,
+                                                   m_amr_mgr.get_nb_owned(),
+                                                   m_block_sizes,
+                                                   m_config_map);
 
   ExecutionSpace exec_space;
 
   // remap data from m_U to m_U2
-  m_U2.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
+  m_U2.resize(m_amr_mgr.get_nb_total());
 
   userdataRemapper.remap_block_data(exec_space, m_U, m_U2);
 
   // swap U2 and U, so that most up to data data are always in U
   my_swap(m_U, m_U2);
 
-  m_U2.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
-  Kokkos::deep_copy(exec_space, m_U2.logical_view(), m_U.logical_view());
+  m_U2.resize(m_amr_mgr.get_nb_total());
+  Kokkos::deep_copy(ExecutionSpace{}, m_U2.logical_view(), m_U.logical_view());
 
   if (m_time_integrator == +TimeIntegrator::RK2_SSP)
   {
-    m_U_RK.resize(m_mesh_map->get_amr_mesh_info().local_num_quadrants_total());
+    m_U_RK.resize(m_amr_mgr.get_nb_total());
   }
 
 } // SolverGodunovFiveEq<dim, device_t>::map_userdata_after_adapt

@@ -36,9 +36,9 @@ template <size_t dim, typename device_t>
 void
 GodunovImplemV0<dim, device_t>::resize_auxiliary_data()
 {
-  const auto num_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
-  const auto num_ghosts = this->m_amr_mesh.local_num_ghosts();
-  const auto num_mirrors = this->m_amr_mesh.local_num_mirrors();
+  const auto num_owned = this->m_amr_mgr.get_nb_owned();
+  const auto num_ghosts = this->m_amr_mgr.get_nb_ghosts();
+  const auto num_mirrors = this->m_amr_mgr.get_nb_mirrors();
 
   m_Q_ghosted.resize(num_owned + num_ghosts);
 
@@ -139,7 +139,7 @@ GodunovImplemV0<dim, device_t>::do_time_step(DataArrayBlock_t const & U,
   }
 
   // fix volume fractions to ensure the normalization property: \f$ sum_i \alpha_i = 1 \f$
-  FixVolumeFractionsNormalization<dim, device_t>::apply(this->m_mesh_map.get_amr_mesh_info(), U2);
+  FixVolumeFractionsNormalization<dim, device_t>::apply(this->m_amr_mgr.get_amr_mesh_info(), U2);
 
   //
   // Add gravity source term when enabled
@@ -171,8 +171,8 @@ GodunovImplemV0<dim, device_t>::do_time_step(DataArrayBlock_t const & U,
     core::OverwriteVelocityField<dim, device_t>::run(
       this->m_config_map,
       U2,
-      this->m_mesh_map.get_amr_mesh_info().local_num_quadrants(),
-      this->m_mesh_map.orchard_keys(),
+      this->m_amr_mgr.get_amr_mesh_info().local_num_quadrants(),
+      this->m_amr_mgr.get_orchard_keys(),
       overwrite_velocity_field_type,
       Hydro::ID,
       Hydro::IE,
@@ -211,10 +211,10 @@ GodunovImplemV0<dim, device_t>::convert_to_primitives_in_mirror_quads(DataArrayB
   // compute primitive variables in owned mirror blocks (U must have MPI ghost up to date)
   ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_in_mirrors(
     this->m_config_map,
-    this->m_mesh_map.hashmap(),
-    this->m_mesh_map.orchard_keys(),
-    this->m_mesh_map.mirror_orchard_keys(),
-    this->m_mesh_map.get_amr_mesh_info(),
+    this->m_amr_mgr.get_hashmap(),
+    this->m_amr_mgr.get_orchard_keys(),
+    this->m_amr_mgr.get_mirror_orchard_keys(),
+    this->m_amr_mgr.get_amr_mesh_info(),
     U,
     m_Q_ghosted_mg,
     this->m_brick_sizes,
@@ -237,16 +237,16 @@ GodunovImplemV0<dim, device_t>::convert_to_primitives(DataArrayBlock_t const & U
   // step 1: convert to primitive variables in owned quadrants
   //
 
-  const auto num_quads_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
-  const auto num_quads_mirrors = this->m_amr_mesh.local_num_mirrors();
-  const auto num_quads_ghosts = this->m_amr_mesh.local_num_ghosts();
+  const auto num_quads_owned = this->m_amr_mgr.get_nb_owned();
+  const auto num_quads_mirrors = this->m_amr_mgr.get_nb_mirrors();
+  const auto num_quads_ghosts = this->m_amr_mgr.get_nb_ghosts();
 
   // compute primitive variables in all owned blocks (U must have MPI ghost up to date)
   ConvertToPrimitivesVariablesFunctor<dim, device_t>::apply_on_group(
     this->m_config_map,
-    this->m_mesh_map.hashmap(),
-    this->m_mesh_map.orchard_keys(),
-    this->m_mesh_map.get_amr_mesh_info(),
+    this->m_amr_mgr.get_hashmap(),
+    this->m_amr_mgr.get_orchard_keys(),
+    this->m_amr_mgr.get_amr_mesh_info(),
     0,
     num_quads_owned,
     U,
@@ -287,8 +287,8 @@ GodunovImplemV0<dim, device_t>::compute_limited_slopes_in_owned_and_ghosts()
 
   KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_SLOPES);
 
-  const auto num_quadrants_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
-  const auto num_quadrants_ghost = this->m_mesh_map.get_amr_mesh_info().local_num_ghosts();
+  const auto num_quadrants_owned = this->m_amr_mgr.get_nb_owned();
+  const auto num_quadrants_ghost = this->m_amr_mgr.get_nb_ghosts();
 
   // compute limited slopes in all quadrants (owned + ghost)
   ComputeLimitedSlopesFunctor<dim, device_t>::apply_on_group(m_Q_ghosted,
@@ -311,8 +311,8 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
 
   KALYPSSO_PROFILING_REGION_DEVICE(this->m_profiling_mgr, NUM_SCHEME_COMPUTE_FLUXES);
 
-  const auto num_quadrants_owned = this->m_mesh_map.get_amr_mesh_info().local_num_quadrants();
-  const auto num_quadrants_ghost = this->m_mesh_map.get_amr_mesh_info().local_num_ghosts();
+  const auto num_quadrants_owned = this->m_amr_mgr.get_nb_owned();
+  const auto num_quadrants_ghost = this->m_amr_mgr.get_nb_ghosts();
 
   // reshape flux to be a flux array in given direction
   m_Fluxes.reshape(get_flux_block_sizes<dim>(m_Q_ghosted.block_size(), direction));
@@ -322,8 +322,8 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
   if (this->m_thinc_params.enabled)
   {
     ComputeFluxesAndStoreTHINCFunctor<dim, device_t>::apply(this->m_config_map,
-                                                            this->m_mesh_map.orchard_keys(),
-                                                            this->m_mesh_map.get_amr_mesh_info(),
+                                                            this->m_amr_mgr.get_orchard_keys(),
+                                                            this->m_amr_mgr.get_amr_mesh_info(),
                                                             m_Fluxes,
                                                             m_u_star,
                                                             m_Q_ghosted,
@@ -341,8 +341,8 @@ GodunovImplemV0<dim, device_t>::compute_fluxes_and_store_in_owned_and_ghosts(rea
   else
   {
     ComputeFluxesAndStoreFunctor<dim, device_t>::apply(this->m_config_map,
-                                                       this->m_mesh_map.orchard_keys(),
-                                                       this->m_mesh_map.get_amr_mesh_info(),
+                                                       this->m_amr_mgr.get_orchard_keys(),
+                                                       this->m_amr_mgr.get_amr_mesh_info(),
                                                        m_Fluxes,
                                                        m_u_star,
                                                        m_Q_ghosted,
@@ -381,21 +381,22 @@ GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned(DataArrayBlock_t
   // compute incoming fluxes in all ghost quadrants and perform conservative update only at
   // interface between ghost and owned quadrants (in case the owned quadrant is coarser than the
   // ghost quadrant)
-  ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::apply(this->m_config_map,
-                                                               this->m_mesh_map.hashmap(),
-                                                               this->m_mesh_map.orchard_keys(),
-                                                               this->m_mesh_map.conformal_status(),
-                                                               this->m_mesh_map.get_amr_mesh_info(),
-                                                               u_in,
-                                                               u_out,
-                                                               m_Fluxes,
-                                                               m_u_star,
-                                                               direction,
-                                                               this->m_brick_sizes,
-                                                               this->m_is_brick_periodic,
-                                                               this->m_hydro_settings,
-                                                               this->m_eos,
-                                                               dt);
+  ReadFluxesAndConservativeUpdateFunctor<dim, device_t>::apply(
+    this->m_config_map,
+    this->m_amr_mgr.get_hashmap(),
+    this->m_amr_mgr.get_orchard_keys(),
+    this->m_amr_mgr.get_conformal_status(),
+    this->m_amr_mgr.get_amr_mesh_info(),
+    u_in,
+    u_out,
+    m_Fluxes,
+    m_u_star,
+    direction,
+    this->m_brick_sizes,
+    this->m_is_brick_periodic,
+    this->m_hydro_settings,
+    this->m_eos,
+    dt);
 
 } // GodunovImplemV0<dim, device_t>::read_fluxes_and_update_in_owned
 
