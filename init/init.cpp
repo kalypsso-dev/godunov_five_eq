@@ -103,7 +103,7 @@ init(SolverGodunovFiveEq<dim, device_t> & solver)
     else
     {
       KALYPSSO_ERROR("Problem : {} is not recognized / implemented.", problem_name);
-      Kokkos::abort("Unknown problem. Check your input parameter file.");
+      Kokkos::abort("Check your input parameter file for \"problem\"");
     }
 
     // print mesh info
